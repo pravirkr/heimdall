@@ -7,26 +7,28 @@
 
 #pragma once
 
-#include "hd/types.h"
+#include <hd/pipeline_types.hpp>
 
-inline __host__ __device__ bool
-ranges_overlap(hd_size bi, hd_size ei, hd_size bj, hd_size ej, hd_size tol) {
+inline __host__ __device__ 
+bool ranges_overlap(
+        hd_size bi, hd_size ei, hd_size bj, hd_size ej, hd_size tol) {
     return bi <= ej + tol && bj <= ei + tol;
 }
 
-inline __host__ __device__ bool are_coincident(hd_size samp_i,
-                                               hd_size samp_j,
-                                               hd_size begin_i,
-                                               hd_size begin_j,
-                                               hd_size end_i,
-                                               hd_size end_j,
-                                               hd_size filter_i,
-                                               hd_size filter_j,
-                                               hd_size dm_i,
-                                               hd_size dm_j,
-                                               hd_size time_tol,
-                                               hd_size filter_tol,
-                                               hd_size dm_tol) {
+inline __host__ __device__ 
+bool are_coincident(hd_size samp_i,
+                    hd_size samp_j,
+                    hd_size begin_i,
+                    hd_size begin_j,
+                    hd_size end_i,
+                    hd_size end_j,
+                    hd_size filter_i,
+                    hd_size filter_j,
+                    hd_size dm_i,
+                    hd_size dm_j,
+                    hd_size time_tol,
+                    hd_size filter_tol,
+                    hd_size dm_tol) {
 
     // TODO: Should time_tol be adjusted for the filtering level(s)?
     //         Sarah's giantsearch doesn't seem to use any tol at all.

@@ -5,14 +5,12 @@
  *
  ***************************************************************************/
 
-#ifndef __DataSource_h
-#define __DataSource_h
+#pragma once
 
 #define HD_TIMESTR "%Y-%m-%d-%H:%M:%S"
 
 class DataSource {
-
-  public:
+public:
     DataSource() {
         nchan        = 0;
         nbit         = 0;
@@ -36,8 +34,7 @@ class DataSource {
     float  get_df() const { return df; }
 
     // must be implemented in sub class
-    virtual bool   get_error() const                   = 0;
-    virtual size_t get_data(size_t nsamps, char *data) = 0;
+    virtual size_t get_data(size_t nsamps, char* data) = 0;
 
     static time_t mjd2utctm(double mjd) {
         const int seconds_in_day = 86400;
@@ -76,7 +73,7 @@ class DataSource {
         return date;
     }
 
-  protected:
+protected:
     size_t nchan;
     size_t nbit;
     size_t npol;
@@ -88,5 +85,3 @@ class DataSource {
     double df;
     double spectra_rate;
 };
-
-#endif

@@ -7,17 +7,16 @@
 
 #pragma once
 
-#include "hd/types.h"
-#include "hd/error.h"
-
+#include <hd/error.hpp>
+#include <hd/pipeline_types.hpp>
 #include <boost/shared_ptr.hpp>
 
 struct RemoveBaselinePlan_impl;
 
 struct RemoveBaselinePlan {
     RemoveBaselinePlan();
-    hd_error exec(hd_float *d_data, hd_size count, hd_size smooth_radius);
+    hd_error exec(hd_float* d_data, hd_size count, hd_size smooth_radius);
 
-  private:
+private:
     boost::shared_ptr<RemoveBaselinePlan_impl> m_impl;
 };

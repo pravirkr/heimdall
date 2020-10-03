@@ -11,21 +11,20 @@
 
 #include <map>
 #include <stdexcept>
-
 #include <iostream>
 
 /*
-  This was copied from Thrust's custom_temporary_allocation example.
- */
+    This was copied from Thrust's custom_temporary_allocation example.
+*/
 
 // cached_allocator: a simple allocator for caching allocation requests
 struct cached_allocator {
     cached_allocator() {}
 
-    void *allocate(std::ptrdiff_t num_bytes) {
+    void* allocate(std::ptrdiff_t num_bytes) {
         // std::cout << "cached_allocator::allocate()" << std::endl;
 
-        void *result = 0;
+        void* result = 0;
 
         // search the cache for a free block
         free_blocks_type::iterator free_block = free_blocks.find(num_bytes);
@@ -49,7 +48,7 @@ struct cached_allocator {
 
                 // allocate memory and convert cuda::pointer to raw pointer
                 result = thrust::system::cuda::malloc(num_bytes).get();
-            } catch (std::runtime_error &e) {
+            } catch (std::runtime_error& e) {
                 throw;
             }
         }
@@ -60,7 +59,7 @@ struct cached_allocator {
         return result;
     }
 
-    void deallocate(void *ptr) {
+    void deallocate(void* ptr) {
         // erase the allocated block from the allocated blocks map
         allocated_blocks_type::iterator iter      = allocated_blocks.find(ptr);
         std::ptrdiff_t                  num_bytes = iter->second;
@@ -90,8 +89,8 @@ struct cached_allocator {
         }
     }
 
-    typedef std::multimap<std::ptrdiff_t, void *> free_blocks_type;
-    typedef std::map<void *, std::ptrdiff_t>      allocated_blocks_type;
+    typedef std::multimap<std::ptrdiff_t, void*> free_blocks_type;
+    typedef std::map<void*, std::ptrdiff_t>      allocated_blocks_type;
 
     free_blocks_type      free_blocks;
     allocated_blocks_type allocated_blocks;
@@ -106,11 +105,11 @@ struct my_tag : thrust::system::cuda::tag {};
 // overload get_temporary_buffer on my_tag
 // its job is to forward allocation requests to g_allocator
 template <typename T>
-thrust::pair<T *, std::ptrdiff_t> get_temporary_buffer(my_tag,
-                                                       std::ptrdiff_t n) {
+thrust::pair<T*, std::ptrdiff_t> get_temporary_buffer(my_tag,
+                                                      std::ptrdiff_t n) {
     // std::cout << "get_temporary_buffer" << std::endl;
     // ask the allocator for sizeof(T) * n bytes
-    T *result = reinterpret_cast<T *>(g_allocator.allocate(sizeof(T) * n));
+    T* result = reinterpret_cast<T*>(g_allocator.allocate(sizeof(T) * n));
 
     // return the pointer and the number of elements allocated
     return thrust::make_pair(result, n);

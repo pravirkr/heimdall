@@ -7,10 +7,6 @@
 
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dedisp.h>
 #include <cuda_runtime_api.h>
 
@@ -36,12 +32,8 @@ enum {
     HD_UNKNOWN_ERROR
 };
 
-const char *hd_get_error_string(hd_error error);
+const char* hd_get_error_string(hd_error error);
 
 hd_error throw_error(hd_error error);
 hd_error throw_dedisp_error(dedisp_error error);
 hd_error throw_cuda_error(cudaError_t error);
-
-#ifdef __cplusplus
-}  // closing brace for extern "C"
-#endif

@@ -7,10 +7,10 @@
 
 #pragma once
 
-#include "hd/types.h"
-#include "hd/error.h"
+#include <hd/error.hpp>
+#include <hd/pipeline_types.hpp>
 
 hd_error merge_candidates(hd_size            count,
-                          hd_size *          d_labels,
+                          hd_size*           d_labels,
                           ConstRawCandidates d_cands,
                           RawCandidates      d_groups);

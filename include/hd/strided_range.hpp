@@ -7,7 +7,7 @@
 
 /*
   This is taken from the Strided Range example supplied with Thrust.
- */
+*/
 
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
@@ -16,15 +16,15 @@
 
 // this example illustrates how to make strided access to a range of values
 // examples:
-// strided_range([0, 1, 2, 3, 4, 5, 6], 1) -> [0, 1, 2, 3, 4, 5, 6]
-// strided_range([0, 1, 2, 3, 4, 5, 6], 2) -> [0, 2, 4, 6]
-// strided_range([0, 1, 2, 3, 4, 5, 6], 3) -> [0, 3, 6]
+//  strided_range([0, 1, 2, 3, 4, 5, 6], 1) -> [0, 1, 2, 3, 4, 5, 6]
+//  strided_range([0, 1, 2, 3, 4, 5, 6], 2) -> [0, 2, 4, 6]
+//  strided_range([0, 1, 2, 3, 4, 5, 6], 3) -> [0, 3, 6]
 // ...
 
 // Note: The length of this range is round_up(len(in_range) / stride)
 template <typename Iterator>
 class strided_range {
-  public:
+public:
     typedef
         typename thrust::iterator_difference<Iterator>::type difference_type;
 
@@ -34,8 +34,8 @@ class strided_range {
 
         stride_functor(difference_type stride) : stride(stride) {}
 
-        __host__ __device__ difference_type
-        operator()(const difference_type &i) const {
+        __host__ __device__ 
+        difference_type operator()(const difference_type& i) const {
             return stride * i;
         }
     };
@@ -65,7 +65,7 @@ class strided_range {
         return begin() + ((last - first) + (stride - 1)) / stride;
     }
 
-  protected:
+protected:
     Iterator        first;
     Iterator        last;
     difference_type stride;

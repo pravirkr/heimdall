@@ -5,8 +5,7 @@
  *
  ***************************************************************************/
 
-#ifndef _STOPWATCH_H
-#define _STOPWATCH_H
+#pragma once
 
 // includes, system
 #include <ctime>
@@ -30,7 +29,7 @@ class Stopwatch {
     //! and stopped to allow averaging
     int clock_sessions;
 
-  public:
+public:
     //! Constructor, default
     Stopwatch()
         : start_time(), diff_time(0), total_time(0), running(false),
@@ -57,7 +56,7 @@ class Stopwatch {
     //! _stopped_ (ie finished sessions) and the current total time
     inline float getAverageTime() const;
 
-  private:
+private:
     // helper functions
 
     //! Get difference between start time and current time
@@ -70,7 +69,6 @@ class Stopwatch {
 //! Start time measurement
 ////////////////////////////////////////////////////////////////////////////////
 inline void Stopwatch::start() {
-
     gettimeofday(&start_time, 0);
     running = true;
 }
@@ -80,7 +78,6 @@ inline void Stopwatch::start() {
 //! variable. Also increment the number of times this clock has been run.
 ////////////////////////////////////////////////////////////////////////////////
 inline void Stopwatch::stop() {
-
     diff_time = getDiffTime();
     total_time += diff_time;
     running = false;
@@ -109,10 +106,8 @@ inline float Stopwatch::getTime() const {
     // Return the TOTAL time to date
     float retval = total_time;
     if (running) {
-
         retval += getDiffTime();
     }
-
     return retval / (float)1000.0;
 }
 
@@ -130,10 +125,7 @@ inline float Stopwatch::getAverageTime() const {
 inline float Stopwatch::getDiffTime() const {
     struct timeval t_time;
     gettimeofday(&t_time, 0);
-
     // time difference in milli-seconds
     return (float)(1000.0 * (t_time.tv_sec - start_time.tv_sec) +
                    (0.001 * (t_time.tv_usec - start_time.tv_usec)));
 }
-
-#endif  // _STOPWATCH_H
