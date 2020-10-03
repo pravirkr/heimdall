@@ -22,9 +22,6 @@ using std::endl;
 // input formats supported
 #include "hd/DataSource.h"
 #include "hd/SigprocFile.h"
-#ifdef HAVE_PSRDADA
-#include "hd/PSRDadaRingBuffer.h"
-#endif
 
 #include "hd/stopwatch.h"
 
@@ -40,55 +37,12 @@ int main(int argc, char* argv[])
   
   DataSource* data_source = 0;
 
-#ifdef HAVE_PSRDADA
-  if( params.dada_id != 0 ) {
-
-    if (params.verbosity)
-      cerr << "Createing PSRDADA client" << endl;
-
-    PSRDadaRingBuffer * d = new PSRDadaRingBuffer(params.dada_id);
-
-    // Read from psrdada ring buffer
-    if( !d || d->get_error() ) {
-      cerr << "ERROR: Failed to initialise connection to psrdada" << endl;
-      return -1;
-    }
-
-    if (params.verbosity)
-      cerr << "Connecting to ring buffer" << endl;
-    // connect to PSRDADA ring buffer
-    if (! d->connect())
-    {
-       cerr << "ERROR: Failed to connection to psrdada ring buffer" << endl;
-      return -1;
-    }
-
-    if (params.verbosity)
-      cerr << "Waiting for next header / data" << endl;
-
-    // wait for and then read next PSRDADA header/observation
-    if (! d->read_header())
-    {
-       cerr << "ERROR: Failed to connection to psrdada ring buffer" << endl;
-      return -1;
-    }
-
-    data_source = (DataSource *) d;
-    if (!params.override_beam)
-      params.beam = d->get_beam() - 1;
+  // Read from filterbank file
+  data_source = new SigprocFile(params.sigproc_file, params.fswap);
+  if( !data_source || data_source->get_error() ) {
+    cerr << "ERROR: Failed to open data file" << endl;
+    return -1;
   }
-  else 
-  {
-#endif
-    // Read from filterbank file
-    data_source = new SigprocFile(params.sigproc_file, params.fswap);
-    if( !data_source || data_source->get_error() ) {
-      cerr << "ERROR: Failed to open data file" << endl;
-      return -1;
-    }
-#ifdef HAVE_PSRDADA
-  }
-#endif
 
   if (!params.override_beam)
   {

@@ -41,11 +41,6 @@ int hd_parse_command_line(int argc, char* argv[], hd_params* params)
     else if( argv[i] == string("-G") ) {
       params->verbosity = max(params->verbosity, 4);
     }
-#ifdef HAVE_PSRDADA
-    else if( argv[i] == string("-k") ) {
-      sscanf(argv[++i], "%x", &(params->dada_id));
-    }
-#endif
     else if( argv[i] == string("-f") ) {
       params->sigproc_file = strdup(argv[++i]);
     }
@@ -151,10 +146,6 @@ int hd_parse_command_line(int argc, char* argv[], hd_params* params)
 
   if (params->sigproc_file == NULL)
   {
-#ifdef HAVE_PSRDADA
-    if (params->dada_id != 0)
-      return 0;
-#endif
     cerr << "ERROR: no input mechanism specified" << endl;
     hd_print_usage();
     return -1;
@@ -169,7 +160,6 @@ void hd_print_usage()
   hd_set_default_params(&p);
 
   cout << "Usage: heimdall [options]" << endl;
-  cout << "    -k  key                  use PSRDADA hexidecimal key" << endl;
   cout << "    -f  filename             process specified SIGPROC filterbank file" << endl;
   cout << "    -vVgG                    increase verbosity level" << endl;
   cout << "    -yield_cpu               yield CPU during GPU operations" << endl;

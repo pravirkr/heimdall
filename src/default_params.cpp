@@ -10,9 +10,6 @@
 void hd_set_default_params(hd_params* params) {
 	// Default parameters
 	params->verbosity       = 0;
-#ifdef HAVE_PSRDADA
-	params->dada_id         = 0;
-#endif
 	params->sigproc_file    = NULL;
 	params->yield_cpu       = false;
 	params->nsamps_gulp     = 262144;//131072; // TODO: Check that this is good
@@ -54,8 +51,6 @@ void hd_set_default_params(hd_params* params) {
   params->num_channel_zaps = 0;
   params->channel_zaps = NULL;
 
-  params->coincidencer_host = NULL;
-  params->coincidencer_port = -1;
 
   params->fswap = false;
 	
