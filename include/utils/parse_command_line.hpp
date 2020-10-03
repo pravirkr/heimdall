@@ -13,9 +13,9 @@ extern "C" {
 
 #include "hd/params.h"
 
-int hd_parse_command_line(int argc, char* argv[], hd_params* params);
+int  hd_parse_command_line(int argc, char *argv[], hd_params *params);
 void hd_print_usage();
 
 #ifdef __cplusplus
-} // closing brace for extern "C"
+}  // closing brace for extern "C"
 #endif

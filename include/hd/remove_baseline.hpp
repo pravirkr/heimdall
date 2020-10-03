@@ -15,10 +15,9 @@
 struct RemoveBaselinePlan_impl;
 
 struct RemoveBaselinePlan {
-	RemoveBaselinePlan();
-	hd_error exec(hd_float* d_data,
-	              hd_size   count,
-	              hd_size   smooth_radius);
-private:
-	boost::shared_ptr<RemoveBaselinePlan_impl> m_impl;
+    RemoveBaselinePlan();
+    hd_error exec(hd_float *d_data, hd_size count, hd_size smooth_radius);
+
+  private:
+    boost::shared_ptr<RemoveBaselinePlan_impl> m_impl;
 };

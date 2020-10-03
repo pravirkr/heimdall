@@ -13,8 +13,8 @@ extern "C" {
 
 #include "hd/params.h"
 
-void hd_set_default_params(hd_params* params);
+void hd_set_default_params(hd_params *params);
 
 #ifdef __cplusplus
-} // closing brace for extern "C"
+}  // closing brace for extern "C"
 #endif

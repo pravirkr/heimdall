@@ -20,13 +20,16 @@
 struct GiantFinder_impl;
 
 struct GiantFinder {
-	GiantFinder();
-	hd_error exec(const hd_float* d_data, hd_size count,
-	              hd_float thresh, hd_size merge_dist,
-	              thrust::device_vector<hd_float>& d_giant_peaks,
-	              thrust::device_vector<hd_size>&  d_giant_inds,
-	              thrust::device_vector<hd_size>&  d_giant_begins,
-	              thrust::device_vector<hd_size>&  d_giant_ends);
-private:
-	boost::shared_ptr<GiantFinder_impl> m_impl;
+    GiantFinder();
+    hd_error exec(const hd_float *                 d_data,
+                  hd_size                          count,
+                  hd_float                         thresh,
+                  hd_size                          merge_dist,
+                  thrust::device_vector<hd_float> &d_giant_peaks,
+                  thrust::device_vector<hd_size> & d_giant_inds,
+                  thrust::device_vector<hd_size> & d_giant_begins,
+                  thrust::device_vector<hd_size> & d_giant_ends);
+
+  private:
+    boost::shared_ptr<GiantFinder_impl> m_impl;
 };

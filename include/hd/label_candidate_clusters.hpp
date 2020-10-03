@@ -41,5 +41,5 @@ hd_error label_candidate_clusters(hd_size            count,
                                   hd_size            time_tol,
                                   hd_size            filter_tol,
                                   hd_size            dm_tol,
-                                  hd_size*           d_labels,
-                                  hd_size*           label_count);
+                                  hd_size *          d_labels,
+                                  hd_size *          label_count);

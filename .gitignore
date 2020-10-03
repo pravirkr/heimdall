@@ -1,16 +1,43 @@
-*.swp
-*.o
-*.lo
-*.la
-*.deps
-*.libs
-Makefile.in
-Makefile
-Applications/heimdall
-Applications/coincidencer
-Applications/coincidencer_client
-Applications/candidate_profiler
-Applications/generate_dmlist
-Applications/Makefile
-Applications/fil2pgm
+# Prerequisites
+*.d
 
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+### CUDA ###
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
+
+# Build directory
+build/
