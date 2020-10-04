@@ -7,12 +7,9 @@
 
 // TODO: For debugging only
 #include <iostream>
-using std::cerr;
-using std::endl;
+#include <hd/error.hpp>
 
-#include "hd/error.h"
-
-const char *hd_get_error_string(hd_error error) {
+const char* hd_get_error_string(hd_error error) {
     switch (error) {
         case HD_NO_ERROR:
             return "No error";
@@ -58,9 +55,11 @@ const char *hd_get_error_string(hd_error error) {
 }
 
 hd_error throw_error(hd_error error) { return error; }
+
 hd_error throw_dedisp_error(dedisp_error error) {
 
-    cerr << "DEDISP ERROR: " << dedisp_get_error_string(error) << endl;
+    std::cerr << "DEDISP ERROR: " << dedisp_get_error_string(error)
+              << std::endl;
 
     switch (error) {
         case DEDISP_MEM_ALLOC_FAILED:

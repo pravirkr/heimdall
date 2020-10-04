@@ -5,9 +5,9 @@
  *
  ***************************************************************************/
 
-#include "hd/measure_bandpass.h"
-#include "hd/median_filter.h"
-#include "hd/get_rms.h"
+#include <hd/measure_bandpass.hpp>
+#include <hd/median_filter.hpp>
+#include <hd/get_rms.hpp>
 
 // TESTING ONLY
 // #include "hd/write_time_series.h"
@@ -20,11 +20,11 @@
 
 template <typename WordType>
 struct unpack_functor : public thrust::unary_function<unsigned int, float> {
-    const WordType *in;
+    const WordType* in;
     unsigned int    nbits;
     unsigned int    chans_per_word;
     WordType        bitmask;
-    unpack_functor(const WordType *in_, unsigned int nbits_)
+    unpack_functor(const WordType* in_, unsigned int nbits_)
         : in(in_), nbits(nbits_), chans_per_word(sizeof(WordType) * 8 / nbits),
           bitmask((1 << nbits) - 1) {}
 
@@ -39,12 +39,12 @@ template <typename T>
 struct abs_val : public thrust::unary_function<T, T> {
     inline __host__ __device__ T operator()(T x) const { return fabs(x); }
 };
-hd_error measure_bandpass(const hd_byte *d_filterbank,
+hd_error measure_bandpass(const hd_byte* d_filterbank,
                           hd_size        nsamps,
                           hd_size        nchans,
                           hd_size        nbits,
-                          hd_float *     d_bandpass,
-                          hd_float *     rms) {
+                          hd_float*      d_bandpass,
+                          hd_float*      rms) {
     using thrust::make_counting_iterator;
 
     typedef unsigned int WordType;
@@ -69,26 +69,27 @@ hd_error measure_bandpass(const hd_byte *d_filterbank,
     thrust::device_vector<hd_float> d_sample_spectra5(spectrum_count / 5 / 5 /
                                                       5 / 5 * nchans);
 
-    hd_float *d_sample_spectra1_ptr =
+    hd_float* d_sample_spectra1_ptr =
         thrust::raw_pointer_cast(&d_sample_spectra1[0]);
-    hd_float *d_sample_spectra2_ptr =
+    hd_float* d_sample_spectra2_ptr =
         thrust::raw_pointer_cast(&d_sample_spectra2[0]);
-    hd_float *d_sample_spectra3_ptr =
+    hd_float* d_sample_spectra3_ptr =
         thrust::raw_pointer_cast(&d_sample_spectra3[0]);
-    hd_float *d_sample_spectra4_ptr =
+    hd_float* d_sample_spectra4_ptr =
         thrust::raw_pointer_cast(&d_sample_spectra4[0]);
-    hd_float *d_sample_spectra5_ptr =
+    hd_float* d_sample_spectra5_ptr =
         thrust::raw_pointer_cast(&d_sample_spectra5[0]);
 
     // TODO: Make this more random?
-    hd_size                                        seed = 123456;
+    hd_size seed = 123456;
+
     thrust::default_random_engine                  rng(seed);
     thrust::uniform_int_distribution<unsigned int> distribution(0, nsamps - 1);
     // Extract spectrum_count sample spectra from the filterbank
     for (hd_size i = 0; i < spectrum_count; ++i) {
         // hd_size t = i * spectrum_stride; // Regular spacing
         hd_size   t    = distribution(rng);  // Uniform random sampling
-        WordType *d_in = (WordType *)&d_filterbank[t * stride];
+        WordType* d_in = (WordType*)&d_filterbank[t * stride];
         thrust::transform(make_counting_iterator<unsigned int>(0),
                           make_counting_iterator<unsigned int>(nchans),
                           d_sample_spectra1.begin() + i * nchans,
@@ -98,29 +99,40 @@ hd_error measure_bandpass(const hd_byte *d_filterbank,
     // Compute the 'remedian' (recursive median) of the sample spectra
     // Note: We do this instead of a proper median for performance and
     // simplicity
-    median_scrunch5_array(d_sample_spectra1_ptr, nchans, spectrum_count,
-                          d_sample_spectra2_ptr);
-    median_scrunch5_array(d_sample_spectra2_ptr, nchans, spectrum_count / 5,
+    median_scrunch5_array(
+        d_sample_spectra1_ptr, nchans, spectrum_count, d_sample_spectra2_ptr);
+    median_scrunch5_array(d_sample_spectra2_ptr,
+                          nchans,
+                          spectrum_count / 5,
                           d_sample_spectra3_ptr);
-    median_scrunch5_array(d_sample_spectra3_ptr, nchans, spectrum_count / 5 / 5,
+    median_scrunch5_array(d_sample_spectra3_ptr,
+                          nchans,
+                          spectrum_count / 5 / 5,
                           d_sample_spectra4_ptr);
-    median_scrunch5_array(d_sample_spectra4_ptr, nchans,
-                          spectrum_count / 5 / 5 / 5, d_sample_spectra5_ptr);
-    median_scrunch5_array(d_sample_spectra5_ptr, nchans,
-                          spectrum_count / 5 / 5 / 5 / 5, d_bandpass);
+    median_scrunch5_array(d_sample_spectra4_ptr,
+                          nchans,
+                          spectrum_count / 5 / 5 / 5,
+                          d_sample_spectra5_ptr);
+    median_scrunch5_array(d_sample_spectra5_ptr,
+                          nchans,
+                          spectrum_count / 5 / 5 / 5 / 5,
+                          d_bandpass);
 
     // write_device_time_series(d_bandpass, nchans, 1.f, "median_spectrum.tim");
 
     // Now we smooth the spectrum to produce an estimate of the bandpass
     thrust::device_vector<hd_float> d_scrunched_spectrum(nchans / 5);
-    hd_float *                      d_scrunched_spectrum_ptr =
+
+    hd_float* d_scrunched_spectrum_ptr =
         thrust::raw_pointer_cast(&d_scrunched_spectrum[0]);
     // TODO: This algorithm was derived empirically. It may not be suitable
     //         if applied to a different observing setup.
     median_scrunch5(d_bandpass, nchans, d_scrunched_spectrum_ptr);
     median_filter5(d_scrunched_spectrum_ptr, nchans / 5, d_bandpass);
     mean_filter2(d_bandpass, nchans / 5, d_scrunched_spectrum_ptr);
-    linear_stretch(d_scrunched_spectrum_ptr, nchans / 5, d_bandpass,
+    linear_stretch(d_scrunched_spectrum_ptr,
+                   nchans / 5,
+                   d_bandpass,
                    // Note: We must use the truncate-rounded length
                    nchans / 5 * 5);
 
@@ -142,15 +154,16 @@ hd_error measure_bandpass(const hd_byte *d_filterbank,
     //         making host versions of the median_scrunch functions.
     thrust::device_vector<hd_float> d_sample_rms1(spectrum_count);
     thrust::device_vector<hd_float> d_sample_rms2(spectrum_count);
-    hd_float *d_sample_rms1_ptr = thrust::raw_pointer_cast(&d_sample_rms1[0]);
-    hd_float *d_sample_rms2_ptr = thrust::raw_pointer_cast(&d_sample_rms2[0]);
+    hd_float* d_sample_rms1_ptr = thrust::raw_pointer_cast(&d_sample_rms1[0]);
+    hd_float* d_sample_rms2_ptr = thrust::raw_pointer_cast(&d_sample_rms2[0]);
 
     for (hd_size i = 0; i < spectrum_count; ++i) {
         // Subtract the bandpass from the spectrum
-        thrust::transform(
-            d_sample_spectra1.begin() + i * nchans,
-            d_sample_spectra1.begin() + (i + 1) * nchans, d_bandpass_begin,
-            d_sample_spectra1.begin() + i * nchans, thrust::minus<hd_float>());
+        thrust::transform(d_sample_spectra1.begin() + i * nchans,
+                          d_sample_spectra1.begin() + (i + 1) * nchans,
+                          d_bandpass_begin,
+                          d_sample_spectra1.begin() + i * nchans,
+                          thrust::minus<hd_float>());
         // Take the absolute value
         thrust::transform(d_sample_spectra1.begin() + i * nchans,
                           d_sample_spectra1.begin() + (i + 1) * nchans,
@@ -161,21 +174,29 @@ hd_error measure_bandpass(const hd_byte *d_filterbank,
     }
 
     thrust::device_vector<hd_float> d_mad(nchans);
-    hd_float *d_mad_ptr = thrust::raw_pointer_cast(&d_mad[0]);
+    hd_float* d_mad_ptr = thrust::raw_pointer_cast(&d_mad[0]);
 
     // Compute the 'remedian' (recursive median) of the sample spectra
     // Note: We do this instead of a proper median for performance and
     // simplicity
-    median_scrunch5_array(d_sample_spectra1_ptr, nchans, spectrum_count,
-                          d_sample_spectra2_ptr);
-    median_scrunch5_array(d_sample_spectra2_ptr, nchans, spectrum_count / 5,
+    median_scrunch5_array(
+        d_sample_spectra1_ptr, nchans, spectrum_count, d_sample_spectra2_ptr);
+    median_scrunch5_array(d_sample_spectra2_ptr,
+                          nchans,
+                          spectrum_count / 5,
                           d_sample_spectra3_ptr);
-    median_scrunch5_array(d_sample_spectra3_ptr, nchans, spectrum_count / 5 / 5,
+    median_scrunch5_array(d_sample_spectra3_ptr,
+                          nchans,
+                          spectrum_count / 5 / 5,
                           d_sample_spectra4_ptr);
-    median_scrunch5_array(d_sample_spectra4_ptr, nchans,
-                          spectrum_count / 5 / 5 / 5, d_sample_spectra5_ptr);
-    median_scrunch5_array(d_sample_spectra5_ptr, nchans,
-                          spectrum_count / 5 / 5 / 5 / 5, d_mad_ptr);
+    median_scrunch5_array(d_sample_spectra4_ptr,
+                          nchans,
+                          spectrum_count / 5 / 5 / 5,
+                          d_sample_spectra5_ptr);
+    median_scrunch5_array(d_sample_spectra5_ptr,
+                          nchans,
+                          spectrum_count / 5 / 5 / 5 / 5,
+                          d_mad_ptr);
 
     // Convert median absolute deviation to standard deviation
     using namespace thrust::placeholders;
@@ -213,8 +234,8 @@ hd_error measure_bandpass(const hd_byte *d_filterbank,
     // Find the median RMS across the band
     std::vector<hd_float> h_mad(nchans);
     thrust::copy(d_mad.begin(), d_mad.end(), h_mad.begin());
-    std::nth_element(h_mad.begin(), h_mad.begin() + h_mad.size() / 2,
-                     h_mad.end());
+    std::nth_element(
+        h_mad.begin(), h_mad.begin() + h_mad.size() / 2, h_mad.end());
     *rms = h_mad[h_mad.size() / 2];
 
     /*

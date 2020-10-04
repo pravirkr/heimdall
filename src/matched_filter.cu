@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "hd/matched_filter.h"
-#include "hd/strided_range.h"
+#include <hd/matched_filter.hpp>
+#include <hd/strided_range.hpp>
 
 #include <thrust/device_vector.h>
 #include <thrust/transform_scan.h>
@@ -17,8 +17,8 @@ class MatchedFilterPlan_impl {
     thrust::device_vector<T> m_scanned;
     hd_size                  m_max_width;
 
-  public:
-    hd_error prep(const T *d_in, hd_size count, hd_size max_width) {
+public:
+    hd_error prep(const T* d_in, hd_size count, hd_size max_width) {
         m_max_width = max_width;
 
         thrust::device_ptr<const T> d_in_begin(d_in);
@@ -34,7 +34,7 @@ class MatchedFilterPlan_impl {
     // d_out
     //         with a relative starting offset of max_width/2
     // Note: This does not apply any normalisation to the output
-    hd_error exec(T *d_out, hd_size filter_width, hd_size tscrunch = 1) {
+    hd_error exec(T* d_out, hd_size filter_width, hd_size tscrunch = 1) {
         // TODO: Check that prep( ) has been called
         // TODO: Check that width <= m_max_width
 
@@ -51,15 +51,20 @@ class MatchedFilterPlan_impl {
 
         // Striding through the scanned array has the same effect as tscrunching
         // TODO: Think about this carefully. Does it do exactly what we want?
-        strided_range<Iterator> in_range1(
-            m_scanned.begin() + offset + ahead,
-            m_scanned.begin() + offset + ahead + out_count, stride);
-        strided_range<Iterator> in_range2(
-            m_scanned.begin() + offset - behind,
-            m_scanned.begin() + offset - behind + out_count, stride);
+        strided_range<Iterator> in_range1(m_scanned.begin() + offset + ahead,
+                                          m_scanned.begin() + offset + ahead +
+                                              out_count,
+                                          stride);
+        strided_range<Iterator> in_range2(m_scanned.begin() + offset - behind,
+                                          m_scanned.begin() + offset - behind +
+                                              out_count,
+                                          stride);
 
-        thrust::transform(in_range1.begin(), in_range1.end(), in_range2.begin(),
-                          d_out_begin, thrust::minus<T>());
+        thrust::transform(in_range1.begin(),
+                          in_range1.end(),
+                          in_range2.begin(),
+                          d_out_begin,
+                          thrust::minus<T>());
 
         return HD_NO_ERROR;
     }
@@ -71,13 +76,13 @@ MatchedFilterPlan<T>::MatchedFilterPlan()
     : m_impl(new MatchedFilterPlan_impl<T>) {}
 template <typename T>
 hd_error
-MatchedFilterPlan<T>::prep(const T *d_in, hd_size count, hd_size max_width) {
+MatchedFilterPlan<T>::prep(const T* d_in, hd_size count, hd_size max_width) {
     return m_impl->prep(d_in, count, max_width);
     // return (*this)->prep(d_in, count, max_width);
 }
 template <typename T>
 hd_error
-MatchedFilterPlan<T>::exec(T *d_out, hd_size filter_width, hd_size tscrunch) {
+MatchedFilterPlan<T>::exec(T* d_out, hd_size filter_width, hd_size tscrunch) {
     return m_impl->exec(d_out, filter_width, tscrunch);
 }
 

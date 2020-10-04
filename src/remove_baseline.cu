@@ -5,9 +5,9 @@
  *
  ***************************************************************************/
 
-#include "hd/remove_baseline.h"
-#include "hd/median_filter.h"
-//#include "hd/write_time_series.h"
+#include <hd/remove_baseline.hpp>
+#include <hd/median_filter.hpp>
+//#include <hd/write_time_series.hpp>
 
 #include <thrust/device_vector.h>
 
@@ -16,8 +16,8 @@ class RemoveBaselinePlan_impl {
     thrust::device_vector<hd_float> buf2;
     thrust::device_vector<hd_float> baseline;
 
-  public:
-    hd_error exec(hd_float *d_data, hd_size count, hd_size smooth_radius) {
+public:
+    hd_error exec(hd_float* d_data, hd_size count, hd_size smooth_radius) {
 
         thrust::device_ptr<hd_float> d_data_begin(d_data);
 
@@ -44,8 +44,8 @@ class RemoveBaselinePlan_impl {
 
         buf1.resize(count_round);
         buf2.resize(count_round / 5);
-        hd_float *buf1_ptr = thrust::raw_pointer_cast(&buf1[0]);
-        hd_float *buf2_ptr = thrust::raw_pointer_cast(&buf2[0]);
+        hd_float* buf1_ptr = thrust::raw_pointer_cast(&buf1[0]);
+        hd_float* buf2_ptr = thrust::raw_pointer_cast(&buf2[0]);
 
         // First we re-sample to the rounded size
         linear_stretch(d_data, count, buf1_ptr, count_round);
@@ -66,7 +66,7 @@ class RemoveBaselinePlan_impl {
                                             buf2_begin[sample_count * 2 - 1]);
 
         baseline.resize(count);
-        hd_float *baseline_ptr = thrust::raw_pointer_cast(&baseline[0]);
+        hd_float* baseline_ptr = thrust::raw_pointer_cast(&baseline[0]);
 
         // And finally we stretch back to the original length
         linear_stretch(buf2_ptr, sample_count * 2 + 2, baseline_ptr, count);
@@ -77,8 +77,11 @@ class RemoveBaselinePlan_impl {
         // "thebaseline.tim");
 
         // Now we just subtract it off
-        thrust::transform(d_data_begin, d_data_begin + count, baseline.begin(),
-                          d_data_begin, thrust::minus<hd_float>());
+        thrust::transform(d_data_begin,
+                          d_data_begin + count,
+                          baseline.begin(),
+                          d_data_begin,
+                          thrust::minus<hd_float>());
 
         // write_device_time_series(d_data, count, 1.f, "post_baseline.tim");
 
@@ -89,7 +92,7 @@ class RemoveBaselinePlan_impl {
 // Public interface (wrapper for implementation)
 RemoveBaselinePlan::RemoveBaselinePlan()
     : m_impl(new RemoveBaselinePlan_impl) {}
-hd_error RemoveBaselinePlan::exec(hd_float *d_data,
+hd_error RemoveBaselinePlan::exec(hd_float* d_data,
                                   hd_size   count,
                                   hd_size   smooth_radius) {
     return m_impl->exec(d_data, count, smooth_radius);

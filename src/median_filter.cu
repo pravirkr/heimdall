@@ -5,7 +5,7 @@
  *
  ***************************************************************************/
 
-#include "hd/median_filter.h"
+#include <hd/median_filter.hpp>
 
 #include <thrust/device_ptr.h>
 #include <thrust/transform.h>
@@ -55,9 +55,9 @@ median5(float a, float b, float c, float d, float e) {
 
 struct median_filter3_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
+    const hd_float* in;
     unsigned int    count;
-    median_filter3_kernel(const hd_float *in_, unsigned int count_)
+    median_filter3_kernel(const hd_float* in_, unsigned int count_)
         : in(in_), count(count_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         // Note: We shrink the window near boundaries
@@ -73,9 +73,9 @@ struct median_filter3_kernel
 
 struct median_filter5_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
+    const hd_float* in;
     unsigned int    count;
-    median_filter5_kernel(const hd_float *in_, unsigned int count_)
+    median_filter5_kernel(const hd_float* in_, unsigned int count_)
         : in(in_), count(count_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         // Note: We shrink the window near boundaries
@@ -95,8 +95,8 @@ struct median_filter5_kernel
 
 struct median_scrunch3_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
-    median_scrunch3_kernel(const hd_float *in_) : in(in_) {}
+    const hd_float* in;
+    median_scrunch3_kernel(const hd_float* in_) : in(in_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         hd_float a = in[3 * i + 0];
         hd_float b = in[3 * i + 1];
@@ -107,8 +107,8 @@ struct median_scrunch3_kernel
 
 struct median_scrunch5_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
-    median_scrunch5_kernel(const hd_float *in_) : in(in_) {}
+    const hd_float* in;
+    median_scrunch5_kernel(const hd_float* in_) : in(in_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         hd_float a = in[5 * i + 0];
         hd_float b = in[5 * i + 1];
@@ -121,9 +121,9 @@ struct median_scrunch5_kernel
 
 struct median_scrunch3_array_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
+    const hd_float* in;
     const hd_size   size;
-    median_scrunch3_array_kernel(const hd_float *in_, hd_size size_)
+    median_scrunch3_array_kernel(const hd_float* in_, hd_size size_)
         : in(in_), size(size_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         hd_size array = i / size;
@@ -138,9 +138,9 @@ struct median_scrunch3_array_kernel
 
 struct median_scrunch5_array_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
+    const hd_float* in;
     const hd_size   size;
-    median_scrunch5_array_kernel(const hd_float *in_, hd_size size_)
+    median_scrunch5_array_kernel(const hd_float* in_, hd_size size_)
         : in(in_), size(size_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         hd_size array = i / size;
@@ -155,25 +155,27 @@ struct median_scrunch5_array_kernel
     }
 };
 
-hd_error median_filter3(const hd_float *d_in, hd_size count, hd_float *d_out) {
+hd_error median_filter3(const hd_float* d_in, hd_size count, hd_float* d_out) {
     thrust::device_ptr<hd_float> d_out_begin(d_out);
     using thrust::make_counting_iterator;
     thrust::transform(make_counting_iterator<unsigned int>(0),
-                      make_counting_iterator<unsigned int>(count), d_out_begin,
+                      make_counting_iterator<unsigned int>(count),
+                      d_out_begin,
                       median_filter3_kernel(d_in, count));
     return HD_NO_ERROR;
 }
 
-hd_error median_filter5(const hd_float *d_in, hd_size count, hd_float *d_out) {
+hd_error median_filter5(const hd_float* d_in, hd_size count, hd_float* d_out) {
     thrust::device_ptr<hd_float> d_out_begin(d_out);
     using thrust::make_counting_iterator;
     thrust::transform(make_counting_iterator<unsigned int>(0),
-                      make_counting_iterator<unsigned int>(count), d_out_begin,
+                      make_counting_iterator<unsigned int>(count),
+                      d_out_begin,
                       median_filter5_kernel(d_in, count));
     return HD_NO_ERROR;
 }
 
-hd_error median_scrunch3(const hd_float *d_in, hd_size count, hd_float *d_out) {
+hd_error median_scrunch3(const hd_float* d_in, hd_size count, hd_float* d_out) {
     thrust::device_ptr<const hd_float> d_in_begin(d_in);
     thrust::device_ptr<hd_float>       d_out_begin(d_out);
     if (count == 1) {
@@ -186,12 +188,13 @@ hd_error median_scrunch3(const hd_float *d_in, hd_size count, hd_float *d_out) {
         using thrust::make_counting_iterator;
         thrust::transform(make_counting_iterator<unsigned int>(0),
                           make_counting_iterator<unsigned int>(out_count),
-                          d_out_begin, median_scrunch3_kernel(d_in));
+                          d_out_begin,
+                          median_scrunch3_kernel(d_in));
     }
     return HD_NO_ERROR;
 }
 
-hd_error median_scrunch5(const hd_float *d_in, hd_size count, hd_float *d_out) {
+hd_error median_scrunch5(const hd_float* d_in, hd_size count, hd_float* d_out) {
     thrust::device_ptr<const hd_float> d_in_begin(d_in);
     thrust::device_ptr<hd_float>       d_out_begin(d_out);
 
@@ -210,41 +213,44 @@ hd_error median_scrunch5(const hd_float *d_in, hd_size count, hd_float *d_out) {
         using thrust::make_counting_iterator;
         thrust::transform(make_counting_iterator<unsigned int>(0),
                           make_counting_iterator<unsigned int>(out_count),
-                          d_out_begin, median_scrunch5_kernel(d_in));
+                          d_out_begin,
+                          median_scrunch5_kernel(d_in));
     }
     return HD_NO_ERROR;
 }
 
 // Median-scrunches the corresponding elements from a collection of arrays
 // Note: This cannot (currently) handle count not being a multiple of 3
-hd_error median_scrunch3_array(const hd_float *d_in,
+hd_error median_scrunch3_array(const hd_float* d_in,
                                hd_size         array_size,
                                hd_size         count,
-                               hd_float *      d_out) {
+                               hd_float*       d_out) {
     thrust::device_ptr<hd_float> d_out_begin(d_out);
     // Note: Truncating here is necessary
     hd_size out_count = count / 3;
     hd_size total     = array_size * out_count;
     using thrust::make_counting_iterator;
     thrust::transform(make_counting_iterator<unsigned int>(0),
-                      make_counting_iterator<unsigned int>(total), d_out_begin,
+                      make_counting_iterator<unsigned int>(total),
+                      d_out_begin,
                       median_scrunch3_array_kernel(d_in, array_size));
     return HD_NO_ERROR;
 }
 
 // Median-scrunches the corresponding elements from a collection of arrays
 // Note: This cannot (currently) handle count not being a multiple of 5
-hd_error median_scrunch5_array(const hd_float *d_in,
+hd_error median_scrunch5_array(const hd_float* d_in,
                                hd_size         array_size,
                                hd_size         count,
-                               hd_float *      d_out) {
+                               hd_float*       d_out) {
     thrust::device_ptr<hd_float> d_out_begin(d_out);
     // Note: Truncating here is necessary
     hd_size out_count = count / 5;
     hd_size total     = array_size * out_count;
     using thrust::make_counting_iterator;
     thrust::transform(make_counting_iterator<unsigned int>(0),
-                      make_counting_iterator<unsigned int>(total), d_out_begin,
+                      make_counting_iterator<unsigned int>(total),
+                      d_out_begin,
                       median_scrunch5_array_kernel(d_in, array_size));
     return HD_NO_ERROR;
 }
@@ -258,9 +264,9 @@ struct mean2_functor : public thrust::binary_function<T, T, T> {
 
 struct mean_scrunch2_array_kernel
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
+    const hd_float* in;
     const hd_size   size;
-    mean_scrunch2_array_kernel(const hd_float *in_, hd_size size_)
+    mean_scrunch2_array_kernel(const hd_float* in_, hd_size size_)
         : in(in_), size(size_) {}
     inline __host__ __device__ hd_float operator()(unsigned int i) const {
         hd_size array = i / size;
@@ -273,34 +279,35 @@ struct mean_scrunch2_array_kernel
 };
 
 // Note: This can operate 'in-place'
-hd_error mean_filter2(const hd_float *d_in, hd_size count, hd_float *d_out) {
+hd_error mean_filter2(const hd_float* d_in, hd_size count, hd_float* d_out) {
     thrust::device_ptr<const hd_float> d_in_begin(d_in);
     thrust::device_ptr<hd_float>       d_out_begin(d_out);
-    thrust::adjacent_difference(d_in_begin, d_in_begin + count, d_out_begin,
-                                mean2_functor<hd_float>());
+    thrust::adjacent_difference(
+        d_in_begin, d_in_begin + count, d_out_begin, mean2_functor<hd_float>());
     return HD_NO_ERROR;
 }
 
-hd_error mean_scrunch2_array(const hd_float *d_in,
+hd_error mean_scrunch2_array(const hd_float* d_in,
                              hd_size         array_size,
                              hd_size         count,
-                             hd_float *      d_out) {
+                             hd_float*       d_out) {
     thrust::device_ptr<hd_float> d_out_begin(d_out);
     // Note: Truncating here is necessary
     hd_size out_count = count / 2;
     hd_size total     = array_size * out_count;
     using thrust::make_counting_iterator;
     thrust::transform(make_counting_iterator<unsigned int>(0),
-                      make_counting_iterator<unsigned int>(total), d_out_begin,
+                      make_counting_iterator<unsigned int>(total),
+                      d_out_begin,
                       mean_scrunch2_array_kernel(d_in, array_size));
     return HD_NO_ERROR;
 }
 
 struct linear_stretch_functor
     : public thrust::unary_function<hd_float, hd_float> {
-    const hd_float *in;
+    const hd_float* in;
     hd_float        step;
-    linear_stretch_functor(const hd_float *in_,
+    linear_stretch_functor(const hd_float* in_,
                            hd_size         in_count,
                            hd_size         out_count)
         : in(in_), step(hd_float(in_count - 1) / (out_count - 1)) {}
@@ -311,9 +318,9 @@ struct linear_stretch_functor
     }
 };
 
-hd_error linear_stretch(const hd_float *d_in,
+hd_error linear_stretch(const hd_float* d_in,
                         hd_size         in_count,
-                        hd_float *      d_out,
+                        hd_float*       d_out,
                         hd_size         out_count) {
     using thrust::make_counting_iterator;
     thrust::device_ptr<hd_float> d_out_begin(d_out);

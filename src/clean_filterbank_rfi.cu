@@ -5,11 +5,11 @@
  *
  ***************************************************************************/
 
-#include "hd/clean_filterbank_rfi.h"
-#include "hd/remove_baseline.h"
-#include "hd/get_rms.h"
-#include "hd/measure_bandpass.h"
-#include "hd/matched_filter.h"
+#include <hd/clean_filterbank_rfi.hpp>
+#include <hd/remove_baseline.hpp>
+#include <hd/get_rms.hpp>
+#include <hd/measure_bandpass.hpp>
+#include <hd/matched_filter.hpp>
 
 #include <vector>
 #include <dedisp.h>
@@ -51,15 +51,15 @@ template <typename WordType>
 struct zap_fb_rfi_functor : public thrust::unary_function<WordType, WordType> {
     // Note: Increasing this trades performance for accuracy
     enum { MAX_RESAMPLE_ATTEMPTS = 10 };
-    const int *     mask;
-    const WordType *in;
+    const int*      mask;
+    const WordType* in;
     unsigned int    stride;
     unsigned int    nbits;
     unsigned int    nsamps;
     unsigned int    max_resample_dist;
     WordType        bitmask;
-    zap_fb_rfi_functor(const int *     mask_,
-                       const WordType *in_,
+    zap_fb_rfi_functor(const int*      mask_,
+                       const WordType* in_,
                        unsigned int    stride_,
                        unsigned int    nbits_,
                        unsigned int    nsamps_,
@@ -110,13 +110,14 @@ struct zap_fb_rfi_functor : public thrust::unary_function<WordType, WordType> {
         return result;
     }
 };
+
 template <typename WordType>
 struct zap_narrow_rfi_functor
     : public thrust::unary_function<WordType, WordType> {
     // Note: Increasing this trades performance for accuracy
     enum { MAX_RESAMPLE_ATTEMPTS = 10 };
-    WordType *   data;
-    const float *baseline;
+    WordType*    data;
+    const float* baseline;
     float        thresh;
     unsigned int stride;
     unsigned int nbits;
@@ -124,8 +125,8 @@ struct zap_narrow_rfi_functor
     unsigned int max_resample_dist;
     WordType     bitmask;
     unsigned int chans_per_word;
-    zap_narrow_rfi_functor(WordType *   data_,
-                           const float *baseline_,
+    zap_narrow_rfi_functor(WordType*    data_,
+                           const float* baseline_,
                            float        thresh_,
                            unsigned int stride_,
                            unsigned int nbits_,
@@ -197,13 +198,13 @@ struct zap_narrow_rfi_functor
 
 // Zaps the whole band for each masked time sample, replacing values with
 //   others sampled randomly from nearby.
-hd_error zap_filterbank_rfi(const int *    h_mask,
-                            const hd_byte *h_in,
+hd_error zap_filterbank_rfi(const int*     h_mask,
+                            const hd_byte* h_in,
                             hd_size        nsamps,
                             hd_size        nbits,
                             hd_size        nchans,
                             hd_size        max_resample_dist,
-                            hd_byte *      h_out) {
+                            hd_byte*       h_out) {
     unsigned int stride_bytes = nchans * nbits / 8;
 
     // Note: This type is used to optimise memory accesses
@@ -219,19 +220,20 @@ hd_error zap_filterbank_rfi(const int *    h_mask,
     // TODO: Tidy this up. Could possibly pass device arrays rather than host.
 
     // Copy filterbank data to the device
-    thrust::device_vector<WordType> d_in((WordType *)h_in,
-                                         (WordType *)h_in + nsamps * stride);
+    thrust::device_vector<WordType> d_in((WordType*)h_in,
+                                         (WordType*)h_in + nsamps * stride);
     thrust::device_vector<WordType> d_out(nsamps * stride);
     thrust::device_vector<int>      d_mask(h_mask, h_mask + nsamps);
-    WordType *d_in_ptr   = thrust::raw_pointer_cast(&d_in[0]);
-    int *     d_mask_ptr = thrust::raw_pointer_cast(&d_mask[0]);
+    WordType* d_in_ptr   = thrust::raw_pointer_cast(&d_in[0]);
+    int*      d_mask_ptr = thrust::raw_pointer_cast(&d_mask[0]);
     thrust::transform(
         thrust::counting_iterator<unsigned int>(0),
-        thrust::counting_iterator<unsigned int>(nsamps * stride), d_out.begin(),
-        zap_fb_rfi_functor<WordType>(d_mask_ptr, d_in_ptr, stride, nbits,
-                                     nsamps, max_resample_dist));
+        thrust::counting_iterator<unsigned int>(nsamps * stride),
+        d_out.begin(),
+        zap_fb_rfi_functor<WordType>(
+            d_mask_ptr, d_in_ptr, stride, nbits, nsamps, max_resample_dist));
     // Copy back to the host
-    thrust::copy(d_out.begin(), d_out.end(), (WordType *)h_out);
+    thrust::copy(d_out.begin(), d_out.end(), (WordType*)h_out);
 
     return HD_NO_ERROR;
 }
@@ -255,49 +257,42 @@ struct rfi_mask_functor : public thrust::binary_function<T, int, bool> {
 };
 
 hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
-                              const hd_byte *h_in,
+                              const hd_byte* h_in,
                               hd_size        nsamps,
                               hd_size        nbits,
-                              hd_byte *      h_out,
-                              int *          h_killmask,
+                              hd_byte*       h_out,
+                              int*           h_killmask,
                               hd_float       dm,
                               hd_float       dt,
                               hd_float       baseline_length,
                               hd_float       rfi_tol,
-                              hd_size        rfi_min_beams,
                               bool           rfi_broad,
                               bool           rfi_narrow,
                               hd_size        boxcar_max) {
-    using thrust::counting_iterator;
+    hd_error             error;
+    typedef hd_float     out_type;
+    typedef unsigned int WordType;
 
-    hd_error error;
-
-    typedef hd_float                out_type;
     std::vector<out_type>           h_raw_series;
     thrust::device_vector<hd_float> d_series;
     // thrust::host_vector<hd_float>   h_series;
     thrust::device_vector<hd_float> d_filtered;
-    // thrust::host_vector<hd_float>   h_beams_series;
-    // thrust::device_vector<hd_float> d_beams_series;
-    thrust::device_vector<int> d_filtered_rfi_mask;
-    thrust::device_vector<int> d_rfi_mask;
-    thrust::host_vector<int>   h_rfi_mask;
-
-    hd_size nchans = dedisp_get_channel_count(main_plan);
-
+    thrust::device_vector<int>      d_filtered_rfi_mask;
+    thrust::device_vector<int>      d_rfi_mask;
+    thrust::host_vector<int>        h_rfi_mask;
     // TODO: Any way to avoid having to use this?
     thrust::host_vector<hd_byte> h_in_copy;
 
-    typedef unsigned int WordType;
-    hd_size              stride = nchans * nbits / 8 / sizeof(WordType);
+    hd_size nchans = dedisp_get_channel_count(main_plan);
+    hd_size stride = nchans * nbits / 8 / sizeof(WordType);
 
     // TODO: Any way to avoid having to use this?
-    thrust::device_vector<WordType> d_in((WordType *)h_in,
-                                         (WordType *)h_in + nsamps * stride);
-    WordType *d_in_ptr = thrust::raw_pointer_cast(&d_in[0]);
+    thrust::device_vector<WordType> d_in((WordType*)h_in,
+                                         (WordType*)h_in + nsamps * stride);
+    WordType* d_in_ptr = thrust::raw_pointer_cast(&d_in[0]);
 
     thrust::device_vector<hd_float> d_bandpass(nchans);
-    hd_float *d_bandpass_ptr = thrust::raw_pointer_cast(&d_bandpass[0]);
+    hd_float* d_bandpass_ptr = thrust::raw_pointer_cast(&d_bandpass[0]);
 
     // Narrow-band RFI is not an issue when nbits is small
     // Note: Small nbits can actually cause this excision code to fail
@@ -318,21 +313,30 @@ hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
 
             // Measure the bandpass
             hd_float rms = 0;
-            measure_bandpass((hd_byte *)(d_in_ptr + g * stride), nsamps_gulp,
-                             nchans, nbits, d_bandpass_ptr, &rms);
+            measure_bandpass((hd_byte*)(d_in_ptr + g * stride),
+                             nsamps_gulp,
+                             nchans,
+                             nbits,
+                             d_bandpass_ptr,
+                             &rms);
 
-            zap_narrow_rfi_functor<WordType> zapit(
-                d_in_ptr, d_bandpass_ptr, rfi_tol * rms, stride, nbits, nchans,
-                max_chan_resample_dist);
+            zap_narrow_rfi_functor<WordType> zapit(d_in_ptr,
+                                                   d_bandpass_ptr,
+                                                   rfi_tol * rms,
+                                                   stride,
+                                                   nbits,
+                                                   nchans,
+                                                   max_chan_resample_dist);
 
             // Zap narrow-band RFI
-            counting_iterator<unsigned int> begin(g * stride);
-            counting_iterator<unsigned int> end((g + nsamps_gulp) * stride);
+            thrust::counting_iterator<unsigned int> begin(g * stride);
+            thrust::counting_iterator<unsigned int> end((g + nsamps_gulp) *
+                                                        stride);
             thrust::for_each(begin, end, zapit);
         }
 
         h_in_copy.resize(nsamps * stride * sizeof(WordType));
-        thrust::copy(d_in.begin(), d_in.end(), (WordType *)&h_in_copy[0]);
+        thrust::copy(d_in.begin(), d_in.end(), (WordType*)&h_in_copy[0]);
     } else {
         h_in_copy.assign(h_in, h_in + nsamps * nchans * nbits / 8);
     }
@@ -346,12 +350,12 @@ hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
         // Create a new plan for the zero-DM dedispersion
         dedisp_float f0 = dedisp_get_f0(main_plan);
         dedisp_float df = dedisp_get_df(main_plan);
-        dedisp_plan  plan;
+
+        dedisp_plan plan;
         derror = dedisp_create_plan(&plan, nchans, dt, f0, df);
         if (derror != DEDISP_NO_ERROR) {
             return throw_dedisp_error(derror);
         }
-
         derror = dedisp_disable_adaptive_dt(plan);
         if (derror != DEDISP_NO_ERROR) {
             return throw_dedisp_error(derror);
@@ -366,11 +370,15 @@ hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
         h_raw_series.resize(nsamps_computed);
 
         unsigned           flags     = DEDISP_USE_DEFAULT;
-        const dedisp_byte *in        = (const dedisp_byte *)&h_in_copy[0];
-        dedisp_byte *      out       = (dedisp_byte *)&h_raw_series[0];
+        const dedisp_byte* in        = (const dedisp_byte*)&h_in_copy[0];
+        dedisp_byte*       out       = (dedisp_byte*)&h_raw_series[0];
         hd_size            out_nbits = sizeof(out_type) * 8;
-        derror = dedisp_execute(plan, nsamps, in, nbits,  // in_stride,
-                                out, out_nbits,           // out_stride,
+        derror                       = dedisp_execute(plan,
+                                nsamps,
+                                in,
+                                nbits,  // in_stride,
+                                out,
+                                out_nbits,  // out_stride,
                                 // gulp_dm, dm_gulp_size,
                                 flags);
         if (derror != DEDISP_NO_ERROR) {
@@ -385,7 +393,7 @@ hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
         d_series = h_raw_series;
         // Remove the baseline
         hd_size   nsamps_smooth = hd_size(baseline_length / (2 * dt));
-        hd_float *d_series_ptr  = thrust::raw_pointer_cast(&d_series[0]);
+        hd_float* d_series_ptr  = thrust::raw_pointer_cast(&d_series[0]);
 
         // write_device_time_series(d_series_ptr, nsamps_computed,
         //                         dt, "dm0_dedispersed.tim");
@@ -415,17 +423,19 @@ hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
         d_rfi_mask.resize(nsamps_computed, 0);
 
         d_filtered_rfi_mask.resize(nsamps_computed, 0);
-        int *d_filtered_rfi_mask_ptr =
+        int* d_filtered_rfi_mask_ptr =
             thrust::raw_pointer_cast(&d_filtered_rfi_mask[0]);
 
         // Create an RFI mask for this filter
-        thrust::transform(d_series.begin(), d_series.end(), d_rfi_mask.begin(),
+        thrust::transform(d_series.begin(),
+                          d_series.end(),
+                          d_rfi_mask.begin(),
                           is_rfi<hd_float>(rfi_tol));
 
         // Note: The filtered output is shorter by boxcar_max samps
         //         and offset by boxcar_max/2 samps.
         d_filtered.resize(nsamps_computed + 1 - boxcar_max);
-        hd_float *d_filtered_ptr = thrust::raw_pointer_cast(&d_filtered[0]);
+        hd_float* d_filtered_ptr = thrust::raw_pointer_cast(&d_filtered[0]);
         MatchedFilterPlan<hd_float> filter_plan;
         filter_plan.prep(d_series_ptr, nsamps_computed, boxcar_max);
 
@@ -440,54 +450,63 @@ hd_error clean_filterbank_rfi(dedisp_plan    main_plan,
             // Normalise the filtered time series (RMS ~ sqrt(time))
             thrust::constant_iterator<hd_float> norm_val_iter(
                 1.0 / sqrt((hd_float)filter_width));
-            thrust::transform(d_filtered.begin(), d_filtered.end(),
-                              norm_val_iter, d_filtered.begin(),
+            thrust::transform(d_filtered.begin(),
+                              d_filtered.end(),
+                              norm_val_iter,
+                              d_filtered.begin(),
                               thrust::multiplies<hd_float>());
 
             // hd_size filter_offset = (boxcar_max-1)/2+1;
             hd_size filter_offset = boxcar_max / 2;
 
             // Create an RFI mask for this filter
-            thrust::transform(d_filtered.begin(), d_filtered.end(),
+            thrust::transform(d_filtered.begin(),
+                              d_filtered.end(),
                               d_filtered_rfi_mask.begin() + filter_offset,
                               is_rfi<hd_float>(rfi_tol));
 
             // Filter the RFI mask
             // Note: This ensures we zap all samples contributing to the peak
             MatchedFilterPlan<int> mask_filter_plan;
-            mask_filter_plan.prep(d_filtered_rfi_mask_ptr, nsamps_computed,
-                                  boxcar_max);
+            mask_filter_plan.prep(
+                d_filtered_rfi_mask_ptr, nsamps_computed, boxcar_max);
             mask_filter_plan.exec(d_filtered_rfi_mask_ptr + filter_offset,
                                   filter_width);
 
             // Merge the filtered mask with the global mask
-            thrust::transform(d_rfi_mask.begin(), d_rfi_mask.end(),
-                              d_filtered_rfi_mask.begin(), d_rfi_mask.begin(),
+            thrust::transform(d_rfi_mask.begin(),
+                              d_rfi_mask.end(),
+                              d_filtered_rfi_mask.begin(),
+                              d_rfi_mask.begin(),
                               thrust::logical_or<int>());
         }
         h_rfi_mask = d_rfi_mask;
         // -------------------------------------
 
         // Finally, apply the mask to zap RFI in the filterbank
-        error = zap_filterbank_rfi(&h_rfi_mask[0], &h_in_copy[0],
-                                   nsamps_computed, nbits, nchans,
+        error = zap_filterbank_rfi(&h_rfi_mask[0],
+                                   &h_in_copy[0],
+                                   nsamps_computed,
+                                   nbits,
+                                   nchans,
                                    // TODO: This is somewhat arbitrary
-                                   nsamps_smooth / 4, &h_out[0]);
+                                   nsamps_smooth / 4,
+                                   &h_out[0]);
         if (error != HD_NO_ERROR) {
             return error;
         }
     } else {
-        thrust::copy(&h_in_copy[0], &h_in_copy[0] + nsamps * nchans * nbits / 8,
-                     h_out);
+        thrust::copy(
+            &h_in_copy[0], &h_in_copy[0] + nsamps * nchans * nbits / 8, h_out);
     }
 
     return HD_NO_ERROR;
 }
 
 hd_error apply_manual_killmasks(dedisp_plan  main_plan,
-                                int *        h_killmask,
+                                int*         h_killmask,
                                 unsigned int num_channel_zaps,
-                                hd_range_t * channel_zaps) {
+                                hd_range_t*  channel_zaps) {
     hd_size nchans = dedisp_get_channel_count(main_plan);
     for (unsigned i = 0; i < num_channel_zaps; i++) {
         for (unsigned j = channel_zaps[i].start; j <= channel_zaps[i].end;

@@ -5,8 +5,8 @@
  *
  ***************************************************************************/
 
-#include "hd/label_candidate_clusters.h"
-#include "hd/are_coincident.cuh"
+#include <hd/label_candidate_clusters.hpp>
+#include <kernels/are_coincident.cuh>
 
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
@@ -17,6 +17,7 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/binary_search.h>
 #include <thrust/count.h>
+
 /*
 // Lexicographically projects 3D integer coordinates onto a 1D coordinate
 // Also applies an offset and performs boundary clamping
@@ -91,6 +92,7 @@ struct range_min_functor : public thrust::binary_function<void,void,ValueType> {
         }
 };
 */
+
 __device__ unsigned int d_counter;
 
 // Finds the root of a chain of equivalent labels
@@ -99,8 +101,8 @@ __device__ unsigned int d_counter;
 //         algorithm/implementation in more detail.
 template <typename T>
 struct trace_equivalency_chain {
-    T *new_labels;
-    trace_equivalency_chain(T *new_labels_) : new_labels(new_labels_) {}
+    T* new_labels;
+    trace_equivalency_chain(T* new_labels_) : new_labels(new_labels_) {}
     inline /*__host__*/ __device__ void
     operator()(unsigned int old_label) const {
         T cur_label = old_label;
@@ -139,23 +141,23 @@ struct trace_equivalency_chain {
 
 struct cluster_functor {
     hd_size        count;
-    const hd_size *d_samp_inds;
-    const hd_size *d_begins;
-    const hd_size *d_ends;
-    const hd_size *d_filters;
-    const hd_size *d_dms;
-    hd_size *      d_labels;
+    const hd_size* d_samp_inds;
+    const hd_size* d_begins;
+    const hd_size* d_ends;
+    const hd_size* d_filters;
+    const hd_size* d_dms;
+    hd_size*       d_labels;
     hd_size        time_tol;
     hd_size        filter_tol;
     hd_size        dm_tol;
 
     cluster_functor(hd_size        count_,
-                    const hd_size *d_samp_inds_,
-                    const hd_size *d_begins_,
-                    const hd_size *d_ends_,
-                    const hd_size *d_filters_,
-                    const hd_size *d_dms_,
-                    hd_size *      d_labels_,
+                    const hd_size* d_samp_inds_,
+                    const hd_size* d_begins_,
+                    const hd_size* d_ends_,
+                    const hd_size* d_filters_,
+                    const hd_size* d_dms_,
+                    hd_size*       d_labels_,
                     hd_size        time_tol_,
                     hd_size        filter_tol_,
                     hd_size        dm_tol_)
@@ -180,9 +182,19 @@ struct cluster_functor {
             hd_size end_j    = d_ends[j];
             hd_size filter_j = d_filters[j];
             hd_size dm_j     = d_dms[j];
-            if (are_coincident(samp_i, samp_j, begin_i, begin_j, end_i, end_j,
-                               filter_i, filter_j, dm_i, dm_j, time_tol,
-                               filter_tol, dm_tol)) {
+            if (are_coincident(samp_i,
+                               samp_j,
+                               begin_i,
+                               begin_j,
+                               end_i,
+                               end_j,
+                               filter_i,
+                               filter_j,
+                               dm_i,
+                               dm_j,
+                               time_tol,
+                               filter_tol,
+                               dm_tol)) {
                 // Re-label as the minimum of the two
                 d_labels[i] = min((int)d_labels[i], (int)d_labels[j]);
             }
@@ -199,8 +211,8 @@ hd_error label_candidate_clusters(hd_size            count,
                                   hd_size            time_tol,
                                   hd_size            filter_tol,
                                   hd_size            dm_tol,
-                                  hd_size *          d_labels,
-                                  hd_size *          label_count) {
+                                  hd_size*           d_labels,
+                                  hd_size*           label_count) {
     /*
       def within_range(bi, ei, bj, ej, tol):
           return bi <= ej+tol and bj <= ei+tol;
@@ -226,10 +238,16 @@ hd_error label_candidate_clusters(hd_size            count,
     //   re-labels as the minimum label over neighbours.
     thrust::for_each(make_counting_iterator<unsigned int>(0),
                      make_counting_iterator<unsigned int>(count),
-                     cluster_functor(count, d_cands.inds, d_cands.begins,
-                                     d_cands.ends, d_cands.filter_inds,
-                                     d_cands.dm_inds, d_labels, time_tol,
-                                     filter_tol, dm_tol));
+                     cluster_functor(count,
+                                     d_cands.inds,
+                                     d_cands.begins,
+                                     d_cands.ends,
+                                     d_cands.filter_inds,
+                                     d_cands.dm_inds,
+                                     d_labels,
+                                     time_tol,
+                                     filter_tol,
+                                     dm_tol));
     /*
     using thrust::make_transform_iterator;
     using thrust::make_zip_iterator;
@@ -350,8 +368,8 @@ hd_error label_candidate_clusters(hd_size            count,
     //         as efficient as the sequential version but should win out
     //         in overall speed.
 
-    unsigned int *d_counter_address;
-    cudaGetSymbolAddress((void **)&d_counter_address, d_counter);
+    unsigned int* d_counter_address;
+    cudaGetSymbolAddress((void**)&d_counter_address, d_counter);
     thrust::device_ptr<unsigned int> d_counter_ptr(d_counter_address);
     *d_counter_ptr = 0;
 
@@ -365,10 +383,13 @@ hd_error label_candidate_clusters(hd_size            count,
     //   This is efficiently achieved by checking where new labels are
     //     unchanged from their original values (i.e., where d_labels[i] == i)
     thrust::device_vector<int> d_label_roots(count);
-    thrust::transform(d_labels_begin, d_labels_begin + count,
-                      make_counting_iterator<hd_size>(0), d_label_roots.begin(),
+    thrust::transform(d_labels_begin,
+                      d_labels_begin + count,
+                      make_counting_iterator<hd_size>(0),
+                      d_label_roots.begin(),
                       thrust::equal_to<hd_size>());
-    *label_count = thrust::count_if(d_label_roots.begin(), d_label_roots.end(),
+    *label_count = thrust::count_if(d_label_roots.begin(),
+                                    d_label_roots.end(),
                                     thrust::identity<hd_size>());
 
     return HD_NO_ERROR;
