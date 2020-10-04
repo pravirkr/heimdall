@@ -1,2 +1,3 @@
-*  Switch error handling from C return type to C++ exceptions 
-*  Replace cout and cerr with logging library (spdlog maybe!)
+* Switch to cmake (easy to run clang-tidy, CI stuff)  
+* Switch error handling from C return type to C++ exceptions 
+* Replace cout and cerr with logging library (spdlog maybe!)

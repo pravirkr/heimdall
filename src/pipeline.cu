@@ -63,7 +63,8 @@ struct hd_pipeline_t {
 hd_error allocate_gpu(const hd_pipeline pl) {
     int gpu_count;
     cudaGetDeviceCount(&gpu_count);
-    int gpu_idx = pl->params.gpu_id;
+    int proc_idx = pl->params.beam;
+    int gpu_idx  = pl->params.gpu_id;
 
     cudaError_t cerror = cudaSetDevice(gpu_idx);
     if (cerror != cudaSuccess) {
@@ -250,7 +251,6 @@ hd_error hd_execute(hd_pipeline    pl,
                                  pl->params.dt,
                                  pl->params.baseline_length,
                                  pl->params.rfi_tol,
-                                 pl->params.rfi_min_beams,
                                  pl->params.rfi_broad,
                                  pl->params.rfi_narrow,
                                  1);  // pl->params.boxcar_max);
@@ -406,7 +406,6 @@ hd_error hd_execute(hd_pipeline    pl,
     }
 
     // Dedisperse
-    dedisp_error       derror;
     const dedisp_byte* in         = &pl->h_clean_filterbank[0];
     dedisp_byte*       out        = &pl->h_dm_series[0];
     dedisp_size        in_nbits   = nbits;

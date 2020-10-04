@@ -42,12 +42,12 @@ struct hd_params {
     hd_float rfi_tol;     // Probability of incorrectly identifying noise as RFI
     hd_float rfi_narrow;  // perform narrow band RFI excision
     hd_float rfi_broad;   // perform broad band 0-DM RFI excision
-    hd_size rfi_boxcar_max  // Max boxcar width to convolve with while
-                            // performing broad band 0-DM RFI excision
-                                // Single pulse search parameters
-                                hd_size boxcar_max;  // Max boxcar width to
-                                                     // convolve with
-    hd_float detect_thresh;  // Detection threshold (units of std. dev.)
+    hd_size  rfi_boxcar_max;  // Max boxcar width to convolve with while
+                              // performing broad band 0-DM RFI excision
+                              // Single pulse search parameters
+    hd_size boxcar_max;       // Max boxcar width to
+                              // convolve with
+    hd_float detect_thresh;   // Detection threshold (units of std. dev.)
 
     hd_size cand_sep_time;    // Min separation between candidates (in samples)
     hd_size cand_sep_filter;  // Min separation between candidates (in filters)

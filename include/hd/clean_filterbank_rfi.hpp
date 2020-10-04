@@ -21,7 +21,6 @@ hd_error clean_filterbank_rfi(dedisp_plan    plan,
                               hd_float       dt,
                               hd_float       baseline_length,
                               hd_float       rfi_tol,
-                              hd_size        rfi_min_beams,
                               bool           rfi_broad,
                               bool           rfi_narrow,
                               hd_size        boxcar_max);
