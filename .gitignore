@@ -40,4 +40,5 @@
 *.fatbin
 
 # Build directory
+lib/
 build/
