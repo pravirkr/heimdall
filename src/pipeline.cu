@@ -36,7 +36,7 @@
 #include <data_types/data_source.hpp>
 #include <utils/stopwatch.hpp>  // For benchmarking
 
-#include <dedisp.h>
+#include <dedisp/dedisp.hpp>
 
 void start_timer(Stopwatch& timer) { timer.start(); }
 void stop_timer(Stopwatch& timer) {

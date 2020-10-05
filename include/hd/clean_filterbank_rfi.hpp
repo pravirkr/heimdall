@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <dedisp.h>
+#include <dedisp/dedisp.hpp>
 #include <hd/error.hpp>
 #include <hd/pipeline_types.hpp>
 

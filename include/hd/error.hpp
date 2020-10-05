@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <dedisp.h>
+#include <dedisp/dedisp.hpp>
 #include <cuda_runtime_api.h>
 
 typedef int hd_error;

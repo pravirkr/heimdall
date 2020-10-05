@@ -10,9 +10,9 @@
 #include <hd/get_rms.hpp>
 #include <hd/measure_bandpass.hpp>
 #include <hd/matched_filter.hpp>
+#include <dedisp/dedisp.hpp>
 
 #include <vector>
-#include <dedisp.h>
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif

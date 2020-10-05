@@ -41,4 +41,5 @@
 
 # Build directory
 lib/
+obj/
 build/
