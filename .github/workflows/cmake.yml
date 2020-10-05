@@ -1,0 +1,101 @@
+name: Build
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04]
+        gcc: [8]
+        cuda: ["10.2", "11.0"]
+    env:
+      build_dir: "build"
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Install CUDA
+      env:
+        cuda: ${{ matrix.cuda }}
+      run: |
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
+        sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
+        sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+        sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /"
+        sudo apt-get update
+
+        CUDA_MAJOR=$(echo "${cuda}" | cut -d. -f1)
+        CUDA_MINOR=$(echo "${cuda}" | cut -d. -f2)
+        CUDA_PACKAGE="cuda-${CUDA_MAJOR}-${CUDA_MINOR}"
+        echo "Installing CUDA package ${CUDA_PACKAGE}"
+
+        sudo apt-get -y install ${CUDA_PACKAGE}
+
+        # Set paths for subsequent steps, using ${CUDA_PATH}
+        echo "Adding CUDA to CUDA_PATH, PATH and LD_LIBRARY_PATH"
+
+        CUDA_PATH=/usr/local/cuda-${CUDA_MAJOR}.${CUDA_MINOR}
+        echo "::set-env name=CUDA_PATH::${CUDA_PATH}"
+        echo "::add-path::${CUDA_PATH}/bin"
+        echo "::set-env name=LD_LIBRARY_PATH::${CUDA_PATH}/lib:${LD_LIBRARY_PATH}"
+      shell: bash    
+    
+    # Specify the correct host compilers
+    - name: Install/Select gcc and g++ 
+      env:
+        gcc: ${{ matrix.gcc }}
+      run: |
+        sudo apt-get -y install gcc-${gcc} g++-${gcc}
+        echo "::set-env name=CC::/usr/bin/gcc-${gcc}"
+        echo "::set-env name=CXX::/usr/bin/g++-${gcc}"
+        echo "::set-env name=CUDAHOSTCXX::/usr/bin/g++-${gcc}"
+
+    - name: Install CMake and Boost
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12 
+      run: |
+        sudo apt-get update && sudo apt-get -y install cmake libboost-all-dev
+        echo "::set-env name=BOOST_ROOT::/usr/include/boost/"
+        
+    - name: Configure CMake
+      run: cmake . -B ${{ env.build_dir }} -Werror=dev
+    
+    - name: Build
+      working-directory: ${{ env.build_dir }}
+      shell: bash
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --target all --verbose
+
+    - name: Example test
+      shell: bash
+      run: |
+        echo "Adding dedisp to LD_LIBRARY_PATH"
+        echo "::set-env name=LD_LIBRARY_PATH::${PWD}/lib:${LD_LIBRARY_PATH}"
+        ./bin/heimdall -f tests/data/askap_frb171019.fil -v
+
+    - name: Configure Error Processing
+      working-directory: ${{ env.build_dir }}
+      shell: bash
+      if: ${{ failure() && steps.configure.outcome == 'failure' }}
+      run: |
+        if [[ -f "CMakeFiles/CMakeOutput.log" ]]; then
+          echo "---- CMakeFiles/CMakeOutput.log"
+          cat CMakeFiles/CMakeOutput.log
+          echo "----"
+        fi
+        if [[ -f "CMakeFiles/CMakeError.log" ]]; then
+          echo "---- CMakeFiles/CMakeError.log"
+          cat CMakeFiles/CMakeError.log
+          echo "----"
+        fi
