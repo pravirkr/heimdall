@@ -5,6 +5,8 @@
  *
  ***************************************************************************/
 
+#include <algorithm>
+ 
 #include <hd/measure_bandpass.hpp>
 #include <hd/median_filter.hpp>
 #include <hd/get_rms.hpp>

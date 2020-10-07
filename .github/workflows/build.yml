@@ -52,8 +52,8 @@ jobs:
 
         CUDA_PATH=/usr/local/cuda-${CUDA_MAJOR}.${CUDA_MINOR}
         echo "CUDA_PATH=${CUDA_PATH}" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${CUDA_PATH}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
         echo "${CUDA_PATH}/bin" >> $GITHUB_PATH
-        echo "${CUDA_PATH}/lib" >> $GITHUB_LD_LIBRARY_PATH
       shell: bash    
     
     # Specify the correct host compilers
@@ -66,11 +66,10 @@ jobs:
         echo "CXX=/usr/bin/g++-${gcc}" >> $GITHUB_ENV
         echo "CUDAHOSTCXX=/usr/bin/g++-${gcc}" >> $GITHUB_ENV
 
-    - name: Install CMake and Boost
+    - name: Install CMake
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12 
       run: |
-        sudo apt-get update && sudo apt-get -y install cmake libboost-all-dev
-        echo "BOOST_ROOT=/usr/include/boost/" >> $GITHUB_ENV
+        sudo apt-get update && sudo apt-get -y install cmake
         
     - name: Configure CMake
       id: configure
@@ -102,7 +101,7 @@ jobs:
       shell: bash
       run: |
         echo "Adding dedisp to LD_LIBRARY_PATH"
-        echo "${PWD}/lib" >> $GITHUB_LD_LIBRARY_PATH
+        echo "LD_LIBRARY_PATH=${PWD}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
         ./bin/heimdall -f tests/data/askap_frb171019.fil -v
 
 

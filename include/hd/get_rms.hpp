@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include <memory>
+
 #include <hd/error.hpp>
 #include <hd/pipeline_types.hpp>
-#include <boost/shared_ptr.hpp>
 
 struct GetRMSPlan_impl;
 
@@ -18,7 +19,7 @@ struct GetRMSPlan {
     hd_float exec(hd_float* d_data, hd_size count);
 
 private:
-    boost::shared_ptr<GetRMSPlan_impl> m_impl;
+    std::shared_ptr<GetRMSPlan_impl> m_impl;
 };
 
 // Convenience functions for one-off calls

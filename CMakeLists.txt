@@ -2,11 +2,9 @@ cmake_minimum_required(VERSION 3.15)
 
 project(heimdall VERSION 1.0.1 LANGUAGES C CXX)
 
-set(BOOST_ROOT $ENV{BOOST_ROOT})
-set(CUDACXX $ENV{CUDA_PATH})
+set(CUDACXX $ENV{CUDA_PATH}/bin/nvcc)
 set(DEDISP "dedisp")
 
-find_package(Boost 1.60 REQUIRED COMPONENTS filesystem)
 include(CheckLanguage)
 check_language(CUDA)
 
@@ -18,7 +16,7 @@ if(CMAKE_CUDA_COMPILER)
         message(STATUS "Found CUDA ${CMAKE_CUDA_COMPILER_VERSION}.")
     endif()
 else(CMAKE_CUDA_COMPILER)
-    message(STATUS "No CUDA compiler found...")
+    message(FATAL_ERROR "No CUDA compiler found...")
 endif(CMAKE_CUDA_COMPILER)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -62,7 +60,6 @@ add_executable(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME} ${DEDISP} pthread)
 

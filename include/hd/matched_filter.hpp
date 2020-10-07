@@ -7,9 +7,10 @@
 
 #pragma once
 
+#include <memory>
+
 #include <hd/error.hpp>
 #include <hd/pipeline_types.hpp>
-#include <boost/shared_ptr.hpp>
 
 template <typename T>
 struct MatchedFilterPlan_impl;
@@ -26,5 +27,5 @@ struct MatchedFilterPlan {
     hd_error exec(T* d_out, hd_size width, hd_size tscrunch = 1);
 
 private:
-    boost::shared_ptr<MatchedFilterPlan_impl<T>> m_impl;
+    std::shared_ptr<MatchedFilterPlan_impl<T>> m_impl;
 };

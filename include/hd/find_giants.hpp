@@ -8,10 +8,10 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 // TODO: Any way to avoid including this here?
 #include <thrust/device_vector.h>
-#include <boost/shared_ptr.hpp>
 #include <hd/error.hpp>
 #include <hd/pipeline_types.hpp>
 
@@ -29,5 +29,5 @@ struct GiantFinder {
                   thrust::device_vector<hd_size>&  d_giant_ends);
 
 private:
-    boost::shared_ptr<GiantFinder_impl> m_impl;
+    std::shared_ptr<GiantFinder_impl> m_impl;
 };
