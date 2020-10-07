@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(heimdall VERSION 1.0.1 LANGUAGES C CXX)
 
-set(BOOST_ROOT "/apps/skylake/software/mpi/gcc/6.4.0/openmpi/3.0.0/boost/1.66.0")
+set(BOOST_ROOT $ENV{BOOST_ROOT})
 set(CUDACXX $ENV{CUDA_PATH})
 set(DEDISP "dedisp")
 

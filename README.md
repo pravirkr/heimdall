@@ -1,5 +1,8 @@
 # Heimdall
-Transient Detection Pipeline 
+Transient Detection Pipeline
+
+[![Build](https://github.com/pravirkr/heimdall/workflows/Build/badge.svg)](https://github.com/pravirkr/heimdall/actions)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/71ddadb7cb954d928dec08b862d4bfac)](https://www.codacy.com/gh/pravirkr/heimdall/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pravirkr/heimdall&amp;utm_campaign=Badge_Grade)
 
 ## Dependencies
 * [CUDA 10.0+](https://developer.nvidia.com/cuda-toolkit-archive)
