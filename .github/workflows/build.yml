@@ -52,7 +52,9 @@ jobs:
 
         CUDA_PATH=/usr/local/cuda-${CUDA_MAJOR}.${CUDA_MINOR}
         echo "CUDA_PATH=${CUDA_PATH}" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=${CUDA_PATH}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
+        echo "CUDA_HOME=${CUDA_PATH}" >> $GITHUB_ENV
+        echo "LIBRARY_PATH=${CUDA_PATH}/lib64${LIBRARY_PATH:+:${LIBRARY_PATH}}" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${CUDA_PATH}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" >> $GITHUB_ENV
         echo "${CUDA_PATH}/bin" >> $GITHUB_PATH
       shell: bash    
     
@@ -66,14 +68,15 @@ jobs:
         echo "CXX=/usr/bin/g++-${gcc}" >> $GITHUB_ENV
         echo "CUDAHOSTCXX=/usr/bin/g++-${gcc}" >> $GITHUB_ENV
 
-    - name: Install CMake
+    - name: Install CMake and clang tools
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12 
       run: |
-        sudo apt-get update && sudo apt-get -y install cmake
+        sudo apt-get update
+        sudo apt-get -y install git build-essential cmake clang-tidy clang-format
         
     - name: Configure CMake
       id: configure
-      run: cmake . -B ${{ env.build_dir }} -Werror=dev
+      run: cmake . -B ${{ env.build_dir }} -Werror=dev -DENABLE_CLANG_TIDY=ON
 
     - name: Configure Error Processing
       working-directory: ${{ env.build_dir }}
@@ -95,13 +98,40 @@ jobs:
       working-directory: ${{ env.build_dir }}
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
-      run: cmake --build . --target all --verbose
-
-    - name: Example test
-      shell: bash
+      # cmake --install . --verbose
       run: |
-        echo "Adding dedisp to LD_LIBRARY_PATH"
-        echo "LD_LIBRARY_PATH=${PWD}/lib:${LD_LIBRARY_PATH}" >> $GITHUB_ENV
-        ./bin/heimdall -f tests/data/askap_frb171019.fil -v
+        cmake --build . --target all --verbose
+
+
+    - name: Run clang-tidy
+      env:
+        PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+        COMMIT: ${GITHUB_SHA}
+      working-directory: ${{ env.build_dir }}
+      shell: bash
+      # 1. Run Clang-Tidy
+      # 2. Convert the Clang-Tidy output to a format that the Codacy API accepts
+      # 3. Send the results to Codacy
+      # 4. Signal that Codacy can use the sent results and start a new analysis
+
+      run: |
+        wget https://github.com/codacy/codacy-clang-tidy/releases/download/1.2.0/codacy-clang-tidy-1.2.0
+        chmod u+x codacy-clang-tidy-1.2.0
+        make tidy | \
+        ./codacy-clang-tidy-1.2.0 | \
+        curl -XPOST -L -H "project-token: $PROJECT_TOKEN" \
+            -H "Content-type: application/json" -d @- \
+            "https://api.codacy.com/2.0/commit/$COMMIT/issuesRemoteResults"
+
+        curl -XPOST -L -H "project-token: $PROJECT_TOKEN" \
+          -H "Content-type: application/json" \
+          "https://api.codacy.com/2.0/commit/$COMMIT/resultsFinal"
+
+    #- name: Example test
+    #  shell: bash
+    #  run: |
+    #    echo "Adding dedisp to LD_LIBRARY_PATH"
+    #    echo "LD_LIBRARY_PATH=${PWD}/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" >> $GITHUB_ENV
+    #    ./bin/heimdall -f tests/data/askap_frb171019.fil -v
 
 

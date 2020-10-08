@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.15)
 
 project(heimdall VERSION 1.0.1 LANGUAGES C CXX)
 
-set(CUDACXX $ENV{CUDA_PATH}/bin/nvcc)
+set(ENV{CUDACXX} $ENV{CUDA_PATH}/bin/nvcc)
 set(DEDISP "dedisp")
+
+option(ENABLE_CLANG_TIDY "Run Clang Tidy to get static analysis" OFF)
 
 include(CheckLanguage)
 check_language(CUDA)
@@ -26,6 +28,39 @@ set(CMAKE_CXX_FLAGS "-Wall")
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED True)
 set(CMAKE_CUDA_FLAGS "-c -Xcompiler=-Wall -O3 -arch=sm_60 -Wno-deprecated-declarations")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+# ------------------------------------------------------------------------------
+# Clang Tidy
+# ------------------------------------------------------------------------------
+if(ENABLE_CLANG_TIDY)
+
+    find_program(CLANG_TIDY_BIN clang-tidy)
+    find_program(RUN_CLANG_TIDY_BIN run-clang-tidy)
+
+    if(CLANG_TIDY_BIN STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+        message(FATAL_ERROR "unable to locate clang-tidy")
+    endif()
+
+    if(RUN_CLANG_TIDY_BIN STREQUAL "RUN_CLANG_TIDY_BIN-NOTFOUND")
+        message(FATAL_ERROR "unable to locate run-clang-tidy")
+    endif()
+
+    list(APPEND RUN_CLANG_TIDY_BIN_ARGS
+        -clang-tidy-binary ${CLANG_TIDY_BIN}
+        -header-filter=.*
+        -checks=clan*,cert*,misc*,perf*,cppc*,read*,mode*,-cert-err58-cpp,-misc-noexcept-move-constructor
+    )
+
+    add_custom_target(
+        tidy
+        COMMAND ${RUN_CLANG_TIDY_BIN} ${RUN_CLANG_TIDY_BIN_ARGS}
+        COMMENT "running clang tidy"
+    )
+
+endif()
 
 
 # dedisp shared library
@@ -60,6 +95,7 @@ add_executable(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 target_link_libraries(${PROJECT_NAME} ${DEDISP} pthread)
 
