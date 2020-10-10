@@ -50,10 +50,9 @@ public:
         f0 = m_header.fch1;
         df = m_header.foff;
 
-        utc_start        = mjd2utctm(m_header.tstart);
-        int  buffer_size = 64;
-        char buffer[buffer_size];
-        strftime(buffer, buffer_size, HD_TIMESTR, localtime(&utc_start));
+        utc_start = mjd2utctm(m_header.tstart);
+        char buffer[128];
+        std::strftime(buffer, sizeof(buffer), "%Y-%m-%d-%H:%M:%S", std::localtime(&utc_start));
 
         stride     = (nchan * nbit) / (8 * sizeof(char));
         first_time = true;

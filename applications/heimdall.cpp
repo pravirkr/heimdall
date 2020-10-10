@@ -11,6 +11,8 @@
 #include <iomanip>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include <utils/stopwatch.hpp>
 #include <utils/parse_command_line.hpp>
 #include <hd/default_params.hpp>
@@ -35,8 +37,8 @@ int main(int argc, char* argv[]) {
     try {
         data_source = new SigprocFile(params.sigproc_file, params.fswap);
     } catch (std::exception& ex) {
-        std::cerr << "FILE ERROR: Failed to open data file" << std::endl;
-        std::cerr << ex.what();
+        fmt::print(stderr, "FILE ERROR: Failed to open data file: {}\n",
+            ex.what());
         return -1;
     }
 
@@ -54,19 +56,16 @@ int main(int argc, char* argv[]) {
     params.utc_start          = data_source->get_utc_start();
     params.spectra_per_second = data_source->get_spectra_rate();
 
-    if (params.verbosity > 0)
-        std::cout << "processing beam " << (params.beam + 1) << std::endl;
-
     size_t nsamps_gulp = params.nsamps_gulp;
     size_t stride      = data_source->get_stride();
     size_t nbits       = data_source->get_nbit();
 
     // ideally this should be nsamps_gulp + max overlap, but just do x2
     size_t filterbank_bytes = 2 * nsamps_gulp * stride;
-    if (params.verbosity >= 2)
-        std::cout << "allocating filterbank data vector for " << nsamps_gulp
-                  << " samples with size " << filterbank_bytes << " bytes"
-                  << std::endl;
+    if (params.verbosity >= 2){
+        fmt::print("Allocating filterbank data vector for {} samples with size {} bytes\n",
+            nsamps_gulp, filterbank_bytes);
+    }
     std::vector<hd_byte> filterbank(filterbank_bytes);
 
     // Create the pipeline object
@@ -75,15 +74,15 @@ int main(int argc, char* argv[]) {
     hd_error    error;
     error = hd_create_pipeline(&pipeline, params);
     if (error != HD_NO_ERROR) {
-        std::cerr << "ERROR: Pipeline creation failed" << std::endl;
-        std::cerr << "       " << hd_get_error_string(error) << std::endl;
+        fmt::print(stderr, "ERROR: Pipeline creation failed:");
+        fmt::print(stderr, "\t\t{}\n", hd_get_error_string(error));
         return -1;
     }
     // --------------------------
 
     if (params.verbosity >= 1) {
-        std::cout << "Beginning data processing, requesting " << nsamps_gulp
-                  << " samples" << std::endl;
+        fmt::print("Beginning data processing, requesting {} samples\n", 
+            nsamps_gulp);
     }
 
     // start a timer for the whole pipeline
@@ -96,16 +95,14 @@ int main(int argc, char* argv[]) {
     size_t overlap = 0;
     while (nsamps_read && !stop_requested) {
         if (params.verbosity >= 1) {
-            std::cout << "Executing pipeline on new gulp of " << nsamps_read
-                      << " samples..." << std::endl;
+            fmt::print("Executing pipeline on new gulp of {} samples...\n",
+                nsamps_read);
         }
         // pipeline_timer.start();
 
         if (params.verbosity >= 2) {
-            std::cout << " nsamp_gulp=" << nsamps_gulp << " overlap=" << overlap
-                      << " nsamps_read=" << nsamps_read
-                      << " nsamps_read+overlap=" << nsamps_read + overlap
-                      << std::endl;
+            fmt::print(" nsamp_gulp={} overlap={} nsamps_read={} nsamps_read+overlap={}\n",
+                nsamps_gulp, overlap, nsamps_read, nsamps_read + overlap);
         }
 
         hd_size nsamps_processed;
@@ -116,25 +113,25 @@ int main(int argc, char* argv[]) {
                            total_nsamps,
                            &nsamps_processed);
         if (error == HD_NO_ERROR) {
-            if (params.verbosity >= 1)
-                std::cout << "Processed " << nsamps_processed << " samples."
-                          << std::endl;
+            if (params.verbosity >= 1){
+                fmt::print("Processed {} samples\n", nsamps_processed);
+            }
         } else if (error == HD_TOO_MANY_EVENTS) {
-            if (params.verbosity >= 1)
-                std::cerr
-                    << "WARNING: hd_execute produces too many events, some "
-                       "data skipped"
-                    << std::endl;
+            if (params.verbosity >= 1){
+                fmt::print(stderr, 
+                    "WARNING: hd_execute produces too many events, some "
+                    "data skipped\n");
+            }
         } else {
-            std::cerr << "ERROR: Pipeline execution failed" << std::endl;
-            std::cerr << "       " << hd_get_error_string(error) << std::endl;
+            fmt::print(stderr, "ERROR: Pipeline execution failed:");
+            fmt::print(stderr, "\t\t{}\n", hd_get_error_string(error));
             hd_destroy_pipeline(pipeline);
             return -1;
         }
 
-        if (params.verbosity >= 1)
-            std::cout << "Main: nsamps_processed=" << nsamps_processed
-                      << std::endl;
+        if (params.verbosity >= 1){
+            fmt::print("Main: nsamps_processed={}\n", nsamps_processed);
+        }
 
         // pipeline_timer.stop();
         // float tsamp = data_source->get_tsamp() / 1000000;
@@ -158,10 +155,10 @@ int main(int argc, char* argv[]) {
 
     // final iteration for nsamps which is not a multiple of gulp size - overlap
     if (stop_requested && nsamps_read > 0) {
-        if (params.verbosity >= 1)
-            std::cout << "Final sub gulp: nsamps_read=" << nsamps_read
-                      << " nsamps_gulp=" << nsamps_gulp
-                      << " overlap=" << overlap << std::endl;
+        if (params.verbosity >= 1){
+            fmt::print("Final sub gulp: nsamps_read={} nsamps_gulp={} overlap={}\n",
+                nsamps_read, nsamps_gulp, overlap);
+        }
         hd_size nsamps_processed;
         hd_size nsamps_to_process = nsamps_read + overlap;
         if (nsamps_to_process > nsamps_gulp)
@@ -172,45 +169,43 @@ int main(int argc, char* argv[]) {
                            nbits,
                            total_nsamps,
                            &nsamps_processed);
-        if (params.verbosity >= 1)
-            std::cout << "Final sub gulp: nsamps_processed=" << nsamps_processed
-                      << std::endl;
+        if (params.verbosity >= 1){
+            fmt::print("Final sub gulp: nsamps_processed={}\n", nsamps_processed);
+        }
 
         if (error == HD_NO_ERROR) {
-            if (params.verbosity >= 1)
-                std::cout << "Processed " << nsamps_processed << " samples."
-                          << std::endl;
+            if (params.verbosity >= 1){
+                fmt::print("Processed {} samples.\n", nsamps_processed);
+            }
         } else if (error == HD_TOO_MANY_EVENTS) {
-            if (params.verbosity >= 1)
-                std::cerr
-                    << "WARNING: hd_execute produces too many events, some "
-                       "data skipped"
-                    << std::endl;
+            if (params.verbosity >= 1){
+                fmt::print(stderr, 
+                    "WARNING: hd_execute produces too many events, some data skipped\n");
+            }
         } else if (error == HD_TOO_FEW_NSAMPS) {
-            if (params.verbosity >= 1)
-                std::cerr
-                    << "WARNING: hd_execute did not have enough samples to "
-                       "process"
-                    << std::endl;
+            if (params.verbosity >= 1){
+                fmt::print(stderr, 
+                    "WARNING: hd_execute did not have enough samples to process\n");
+            }
         } else {
-            std::cerr << "ERROR: Pipeline execution failed" << std::endl;
-            std::cerr << "       " << hd_get_error_string(error) << std::endl;
+            fmt::print(stderr, "ERROR: Pipeline execution failed:");
+            fmt::print(stderr, "\t\t{}\n", hd_get_error_string(error));
         }
         total_nsamps += nsamps_processed;
     }
 
     if (params.verbosity >= 1) {
-        std::cout << "Successfully processed a total of " << total_nsamps
-                  << " samples." << std::endl;
+        fmt::print("Successfully processed a total of {} samples.\n", 
+            total_nsamps);
     }
 
     if (params.verbosity >= 1) {
-        std::cout << "Shutting down..." << std::endl;
+        fmt::print("Shutting down...\n");
     }
 
     hd_destroy_pipeline(pipeline);
 
     if (params.verbosity >= 1) {
-        std::cout << "All done." << std::endl;
+        fmt::print("All done.\n");
     }
 }

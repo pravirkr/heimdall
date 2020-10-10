@@ -4,6 +4,15 @@
  *   Licensed under the Academic Free License version 2.1
  *
  ***************************************************************************/
+
+
+#include <utility>  // For std::pair
+
+template <typename T, typename U>
+std::pair<T&, U&> tie(T& a, U& b) {
+    return std::pair<T&, U&>(a, b);
+}
+
 :wn
 
 cpp_objects: $(CPP_SOURCES) $(HEADERS)

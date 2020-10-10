@@ -13,14 +13,13 @@
 #include <cstring>  // strlen and strcpy
 
 #include <cinttypes>
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE /* glibc2 needs this for strptime  */
-#endif
 #include <ctime>
 #include <cmath>
 #include <cstdlib>
 #include <libgen.h>
 #include <sys/stat.h>
+
+#include <fmt/format.h>
 
 class Candidate {
 public:
@@ -64,18 +63,18 @@ public:
 
         iss >> ws;
 
-        if (!iss.eof())
-            std::cout << "Candiate::Candidate too many params on input line ["
-                      << line << "]" << std::endl;
+        if (!iss.eof()){
+            fmt::print(
+                "Candiate::Candidate too many params on input line [{}]\n", 
+                line);
+        }
     }
 
     ~Candidate() {}
 
     void header() {
-        std::cout
-            << "SNR\tsamp_idx\ttime\tfilter\tdm_trial\tDM\tmembers\tbegin\t";
-        std::cout << "end\tnbeams\tbeam_mask\tprim_beam\tmax_snr\tbeam"
-                  << std::endl;
+        fmt::print("SNR\tsamp_idx\ttime\tfilter\tdm_trial\tDM\tmembers\t"
+                   "begin\tend\tnbeams\tbeam_mask\tprim_beam\tmax_snr\tbeam\n")
     }
 
     bool is_coincident(const Candidate* c) {
@@ -119,9 +118,11 @@ public:
         int    beam_number = 0;
 
         for (unsigned int i = 0; i < n_beams; i++) {
-            if (verbose)
-                std::cerr << "CandidateChunk::CandidateChunk opening file "
-                          << argv[optind + i] << std::endl;
+            if (verbose){
+                fmt::print(stderr, 
+                    "CandidateChunk::CandidateChunk opening file {}\n",
+                    argv[optind + i]);
+            }
 
             // determine beam number from filename
             stringstream ss(basename(argv[optind + i]));
@@ -130,10 +131,11 @@ public:
             beam_number     = atoi(beam.c_str());
             beam_numbers[i] = beam_number;
 
-            if (verbose)
-                std::cerr
-                    << "CandidateChunk::CandidateChunk parsed beam number as "
-                    << beam << std::endl;
+            if (verbose){
+                fmt::print(stderr, 
+                    "CandidateChunk::CandidateChunk parsed beam number as {}\n",
+                    beam);
+            }
 
             std::ifstream ifs(argv[optind + i], std::ios::in);
             while (ifs.good()) {
@@ -146,8 +148,9 @@ public:
     }
 
     ~CandidateChunk() {
-        if (verbose)
-            std::cerr << "CandidateChunk::~CandidateChunk" << std::endl;
+        if (verbose){
+            fmt::print(stderr, "CandidateChunk::~CandidateChunk\n")
+        }
         for (unsigned i = 0; i < n_beams; i++) {
             for (unsigned j = 0; j < cands[i].size(); j++)
                 delete cands[i][j];
@@ -169,22 +172,25 @@ public:
             first_sample_utc = _first_sample_utc;
             utc_start        = _utc_start;
         } else {
-            if (first_sample != _first_sample)
-                std::cerr << "CandidateChunk::addBeam sample mismatch ["
-                          << first_sample << " != " << _first_sample << "]"
-                          << std::endl;
-            if (utc_start != _utc_start)
-                std::cerr << "CandidateChunk::addBeam utc_start mismatch"
-                          << std::endl;
+            if (first_sample != _first_sample){
+                fmt::print(stderr, 
+                    "CandidateChunk::addBeam sample mismatch [{} != {}]\n",
+                    first_sample, _first_sample);
+            }
+            if (utc_start != _utc_start){
+                fmt::print(stderr, "CandidateChunk::addBeam utc_start mismatch\n");
+            }
         }
 
         // resize storage for this new beam
         resize(n_beams + 1);
         beam_numbers[ibeam] = beam;
 
-        if (verbose > 1)
-            std::cerr << "CandidateChunk::addBeam resized to " << n_beams
-                      << " beams with beam " << beam << std::endl;
+        if (verbose > 1){
+            fmt::print(stderr, 
+                "CandidateChunk::addBeam resized to {} beams with beam {}\n",
+                n_beams, beam);
+        }
 
         char cand_line[1024];
         cands[ibeam].resize(num_events);
@@ -259,18 +265,19 @@ public:
                 filename = new std::string(utc_start + "/" + first_sample_utc +
                                            "_all.cand");
             else {
-                std::cerr << "directory [" << utc_start
-                          << "] did not exist, not writing candidate file"
-                          << std::endl;
+                fmt::print(stderr, 
+                    "directory [{}] did not exist, not writing candidate file\n",
+                    utc_start);
                 return;
             }
         }
         std::ofstream ofs(filename->c_str(), std::ios::out);
 
-        if (verbose)
-            std::cerr
-                << "CandidateChunk::write_coincident_candidates: output_file="
-                << filename->c_str() << std::endl;
+        if (verbose){
+            fmt::print(stderr, 
+                "CandidateChunk::write_coincident_candidates: output_file={}\n",
+                filename);
+        }
 
         for (unsigned i = 0; i < n_beams; i++)
             for (unsigned j = 0; j < cands[i].size(); j++)

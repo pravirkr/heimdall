@@ -7,11 +7,9 @@
 
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <cstdlib>
-#include <cstdio>
-#include <algorithm>
+#include <fmt/format.h>
 #include <hd/params.hpp>
 #include <hd/default_params.hpp>
 
@@ -19,87 +17,101 @@ void hd_print_usage() {
     hd_params p;
     hd_set_default_params(&p);
 
-    std::cout << "Usage: heimdall [options]" << std::endl;
-    std::cout << "    -f  filename             process specified SIGPROC "
-                 "filterbank file"
-              << std::endl;
-    std::cout << "    -vVgG                    increase verbosity level"
-              << std::endl;
-    std::cout << "    -yield_cpu               yield CPU during GPU operations"
-              << std::endl;
-    std::cout << "    -gpu_id ID               run on specified GPU"
-              << std::endl;
-    std::cout << "    -nsamps_gulp num         number of samples to be read at "
-                 "a time ["
-              << p.nsamps_gulp << "]" << std::endl;
-    std::cout << "    -baseline_length num     number of seconds over which to "
-                 "smooth the baseline ["
-              << p.baseline_length << "]" << std::endl;
-    std::cout << "    -beam ##                 over-ride beam number"
-              << std::endl;
-    std::cout << "    -output_dir path         create all output files in "
-                 "specified path"
-              << std::endl;
-    std::cout << "    -dm min max              min and max DM" << std::endl;
-    std::cout << "    -dm_tol num              SNR loss tolerance between each "
-                 "DM trial ["
-              << p.dm_tol << "]" << std::endl;
-    std::cout << "    -zap_chans start end     zap all channels between start "
-                 "and end channels inclusive"
-              << std::endl;
-    std::cout << "    -max_giant_rate nevents  limit the maximum number of "
-                 "individual detections per minute to nevents"
-              << std::endl;
-    std::cout << "    -dm_pulse_width num      expected intrinsic width of the "
-                 "pulse signal in microseconds"
-              << std::endl;
-    std::cout << "    -dm_nbits num            number of bits per sample in "
-                 "dedispersed time series ["
-              << p.dm_nbits << "]" << std::endl;
-    std::cout << "    -no_scrunching           don't use an adaptive time "
-                 "scrunching during dedispersion"
-              << std::endl;
-    std::cout << "    -scrunching_tol num      smear tolerance factor for time "
-                 "scrunching ["
-              << p.scrunch_tol << "]" << std::endl;
-    std::cout << "    -rfi_tol num             RFI exicision threshold limits ["
-              << p.rfi_tol << "]" << std::endl;
-    std::cout << "    -rfi_no_narrow           disable narrow band RFI excision"
-              << std::endl;
-    std::cout << "    -rfi_no_broad            disable 0-DM RFI excision"
-              << std::endl;
-    std::cout << "    -rfi_boxcar_max num      maximum boxcar width in samples "
-                 "while 0-DM RFI excision ["
-              << p.rfi_boxcar_max << "]" << std::endl;
-    std::cout
-        << "    -boxcar_max num          maximum boxcar width in samples ["
-        << p.boxcar_max << "]" << std::endl;
-    std::cout << "    -detect_thresh num       Detection threshold (units of "
-                 "std. dev.) ["
-              << p.detect_thresh << "]" << std::endl;
-    std::cout << "    -cand_sep_time num       Min separation between "
-                 "candidates (in samples) ["
-              << p.cand_sep_time << "]" << std::endl;
-    std::cout << "    -cand_sep_filter num     Min separation between "
-                 "candidates (in filters) ["
-              << p.cand_sep_filter << "]" << std::endl;
-    std::cout << "    -cand_sep_dm_trial num   Min separation between "
-                 "candidates (in DM trials) ["
-              << p.cand_sep_dm << "]" << std::endl;
-    std::cout << "    -cand_rfi_dm_cut num     Minimum DM for valid candidate ["
-              << p.cand_rfi_dm_cut << "]" << std::endl;
-    std::cout << "    -fswap                   swap channel ordering for "
-                 "negative DM - SIGPROC 2,4 or 8 bit only"
-              << std::endl;
-    std::cout << "    -debug                   Run in debug mode (output "
-                 "filterbank and tseries)"
-              << std::endl;
-    std::cout << "    -debug_dm                DM Index to dump timeseries in "
-                 "debug mode ["
-              << p.debug_dm << "]" << std::endl;
-    std::cout << "    -min_tscrunch_width num  vary between high quality "
-                 "(large value) and high performance (low value)"
-              << std::endl;
+    fmt::print("Usage: heimdall [options]\n");
+    fmt::print("\t{:<25} {}\n",
+               "-f filename",
+               "process specified SIGPROC filterbank file");
+    fmt::print("\t{:<25} {}\n", "-vVgG", "increase verbosity level");
+    fmt::print(
+        "\t{:<25} {}\n", "-yield_cpu", "yield CPU during GPU operations");
+    fmt::print("\t{:<25} {}\n", "-gpu_id ID", "run on specified GPU");
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-nsamps_gulp num",
+               "number of samples to be read at a time",
+               p.nsamps_gulp);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-baseline_length num",
+               "number of seconds over which to smooth the baseline",
+               p.baseline_length);
+    fmt::print("\t{:<25} {}\n", "-beam ##", "over-ride beam number");
+    fmt::print("\t{:<25} {}\n",
+               "-output_dir path",
+               "create all output files in the specified path");
+    fmt::print("\t{:<25} {}\n", "-dm min max", "min and max DM");
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-dm_tol num",
+               "SNR loss tolerance between each DM trial",
+               p.dm_tol);
+    fmt::print("\t{:<25} {}\n",
+               "-zap_chans start end",
+               "zap all channels between start and end channels inclusive");
+    fmt::print("\t{:<25} {}\n",
+               "-max_giant_rate nevents",
+               "limit the maximum number of individual detections per minute "
+               "to nevents");
+    fmt::print("\t{:<25} {}\n",
+               "-dm_pulse_width num",
+               "expected intrinsic width of the pulse signal in microseconds");
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-dm_nbits num",
+               "number of bits per sample in dedispersed time series",
+               p.dm_nbits);
+    fmt::print("\t{:<25} {}\n",
+               "-no_scrunching",
+               "don't use an adaptive time scrunching during dedispersion");
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-scrunching_tol num",
+               "smear tolerance factor for time scrunching",
+               p.scrunch_tol);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-rfi_tol num",
+               "RFI exicision threshold limits",
+               p.rfi_tol);
+    fmt::print(
+        "\t{:<25} {}\n", "-rfi_no_narrow", "disable narrow band RFI excision");
+    fmt::print("\t{:<25} {}\n", "-rfi_no_broad", "disable 0-DM RFI excision");
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-rfi_boxcar_max num",
+               "maximum boxcar width in samples while 0-DM RFI excision",
+               p.rfi_boxcar_max);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-boxcar_max num",
+               "maximum boxcar width in samples",
+               p.boxcar_max);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-detect_thresh num",
+               "Detection threshold (units of std. dev.)",
+               p.detect_thresh);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-cand_sep_time num",
+               "Min separation between candidates (in samples)",
+               p.cand_sep_time);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-cand_sep_filter num",
+               "Min separation between candidates (in filters)",
+               p.cand_sep_filter);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-cand_sep_dm_trial num",
+               "Min separation between candidates (in DM trials)",
+               p.cand_sep_dm);
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-cand_rfi_dm_cut num",
+               "Minimum DM for valid candidate",
+               p.cand_rfi_dm_cut);
+    fmt::print("\t{:<25} {}\n",
+               "-fswap",
+               "swap channel ordering for negative DM - 2,4 or 8 bit only");
+    fmt::print("\t{:<25} {}\n",
+               "-debug",
+               "Run in debug mode (output filterbank and tseries)");
+    fmt::print("\t{:<25} {} [{}]\n",
+               "-debug_dm",
+               "DM Index to dump timeseries in debug mode",
+               p.debug_dm);
+    fmt::print("\t{:<25} {}\n",
+               "-min_tscrunch_width num",
+               "vary between high quality (large value) and high performance "
+               "(low value)");
 }
 
 int hd_parse_command_line(int argc, char* argv[], hd_params* params) {
@@ -185,13 +197,12 @@ int hd_parse_command_line(int argc, char* argv[], hd_params* params) {
             params->channel_zaps[izap].start = atoi(argv[++i]);
             params->channel_zaps[izap].end   = atoi(argv[++i]);
         } else {
-            std::cerr << "WARNING: Unknown parameter '" << argv[i] << "'"
-                      << std::endl;
+            fmt::print(stderr, "WARNING: Unknown parameter '{}'\n", argv[i]);
         }
     }
 
     if (params->sigproc_file.empty()) {
-        std::cerr << "ERROR: no input mechanism specified" << std::endl;
+        fmt::print(stderr, "ERROR: no input mechanism specified\n");
         hd_print_usage();
         return -1;
     } else

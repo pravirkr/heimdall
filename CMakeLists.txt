@@ -4,8 +4,16 @@ project(heimdall VERSION 1.0.1 LANGUAGES C CXX)
 
 set(ENV{CUDACXX} $ENV{CUDA_PATH}/bin/nvcc)
 set(DEDISP "dedisp")
+set(FMTLIB "fmtlib")
 
 option(ENABLE_CLANG_TIDY "Run Clang Tidy to get static analysis" OFF)
+
+include(FindGit)
+find_package(Git)
+
+if (NOT Git_FOUND)
+    message(FATAL_ERROR "Git not found!")
+endif ()
 
 include(CheckLanguage)
 check_language(CUDA)
@@ -31,6 +39,24 @@ set(CMAKE_CUDA_FLAGS "-c -Xcompiler=-Wall -O3 -arch=sm_60 -Wno-deprecated-declar
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+
+include(FetchContent)
+
+FetchContent_Declare(
+    fmtlib
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG        7.0.3
+)
+
+FetchContent_GetProperties(fmtlib)
+if(NOT fmtlib_POPULATED)
+    FetchContent_Populate(fmtlib)
+    message(STATUS "fmt source dir: ${fmtlib_SOURCE_DIR}")
+    message(STATUS "fmt binary dir: ${fmtlib_BINARY_DIR}")
+    add_subdirectory(${fmtlib_SOURCE_DIR} ${fmtlib_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+message(STATUS "fmt include dir: ${fmtlib_SOURCE_DIR}/include")
 
 # ------------------------------------------------------------------------------
 # Clang Tidy
@@ -97,7 +123,8 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-target_link_libraries(${PROJECT_NAME} ${DEDISP} pthread)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${DEDISP} pthread)
+target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
 
 install(TARGETS ${PROJECT_NAME} 
     DESTINATION ${PROJECT_SOURCE_DIR}/bin

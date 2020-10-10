@@ -12,10 +12,6 @@
 #include <hd/matched_filter.hpp>
 #include <dedisp/dedisp.hpp>
 
-#include <vector>
-#ifdef HAVE_MPI
-#include <mpi.h>
-#endif
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/random.h>
@@ -24,8 +20,6 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/constant_iterator.h>
 
-// TESTING ONLY
-//#include "hd/write_time_series.h"
 
 // A simple hashing function taken from Thrust's Monte Carlo example
 inline __host__ __device__ unsigned int hash(unsigned int a) {

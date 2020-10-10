@@ -7,8 +7,6 @@
 
 #pragma once
 
-#define HD_TIMESTR "%Y-%m-%d-%H:%M:%S"
-
 class DataSource {
 public:
     DataSource() {
