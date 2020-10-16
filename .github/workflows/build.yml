@@ -117,6 +117,8 @@ jobs:
       run: |
         wget https://github.com/codacy/codacy-clang-tidy/releases/download/1.2.0/codacy-clang-tidy-1.2.0
         chmod u+x codacy-clang-tidy-1.2.0
+        grep -v "fmtlib-src/src\|fmtlib-build" compile_commands.json > test.json
+        mv test.json compile_commands.json
         make tidy | \
         ./codacy-clang-tidy-1.2.0 | \
         curl -XPOST -L -H "project-token: $PROJECT_TOKEN" \
