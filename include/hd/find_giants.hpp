@@ -15,6 +15,8 @@
 #include <hd/error.hpp>
 #include <hd/pipeline_types.hpp>
 
+#include <kernels/cached_allocator.cuh>
+
 struct GiantFinder_impl;
 
 struct GiantFinder {
@@ -29,5 +31,6 @@ struct GiantFinder {
                   thrust::device_vector<hd_size>&  d_giant_ends);
 
 private:
+    cached_allocator allocator;
     std::shared_ptr<GiantFinder_impl> m_impl;
 };

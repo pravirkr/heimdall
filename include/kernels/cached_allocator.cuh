@@ -8,39 +8,30 @@
 #pragma once
 
 #include <thrust/system/cuda/vector.h>
+#include <thrust/system/cuda/execution_policy.h>
 
 #include <map>
 #include <stdexcept>
+#include <cstddef>
 #include <iostream>
+#include <sstream>
+
+#include <fmt/format.h>
 
 /*
     This was copied from Thrust's custom_temporary_allocation example.
+    https://github.com/NVIDIA/thrust/blob/master/examples/cuda/custom_temporary_allocation.cu
 */
 
-struct not_my_pointer {
-    not_my_pointer(void* p) : message() {
-        std::stringstream s;
-        s << "Pointer `" << p << "` was not allocated by this allocator.";
-        message = s.str();
-    }
-
-    virtual ~not_my_pointer() {}
-
-    virtual const char* what() const { return message.c_str(); }
-
-private:
-    std::string message;
-};
-
-// cached_allocator: A simple allocator for caching cudaMalloc allocations.
+// A simple allocator for caching cudaMalloc allocations.
 struct cached_allocator {
     cached_allocator() {}
 
     ~cached_allocator() { free_all(); }
 
     char* allocate(std::ptrdiff_t num_bytes) {
-        // std::cout << "cached_allocator::allocate(): num_bytes == "
-        //           << num_bytes << std::endl;
+        // fmt::print("cached_allocator::allocate(): num_bytes == {}\n",
+        //           num_bytes);
 
         char* result = 0;
 
@@ -48,84 +39,74 @@ struct cached_allocator {
         free_blocks_type::iterator free_block = free_blocks.find(num_bytes);
 
         if (free_block != free_blocks.end()) {
-            // std::cout << "cached_allocator::allocator(): found a free block"
-            // << std::endl;
+            // fmt::print("cached_allocator::allocate(): found a free block\n");
 
-            // get the pointer
             result = free_block->second;
 
-            // erase from the free_blocks map
+            // Erase from the `free_blocks` map.
             free_blocks.erase(free_block);
         } else {
-            // no allocation of the right size exists
-            // create a new one with thrust::cuda::malloc
-            // throw if thrust::cuda::malloc can't satisfy the request
+            // No allocation of the right size exists, so create a new one with
+            // `thrust::cuda::malloc`.
             try {
-                // std::cout << "cached_allocator::allocator():
-                // allocating new block" << std::endl;
+                // fmt::print(
+                //    "cached_allocator::allocate(): allocating new block\n");
 
-                // allocate memory and convert thrust::cuda::pointer to raw
-                // pointer
+                // Allocate memory and convert the resulting
+                // `thrust::cuda::pointer` to a raw pointer.
                 result = thrust::cuda::malloc<char>(num_bytes).get();
             } catch (std::runtime_error&) {
                 throw;
             }
         }
 
-        // insert the allocated pointer into the allocated_blocks map
+        // Insert the allocated pointer into the `allocated_blocks` map.
         allocated_blocks.insert(std::make_pair(result, num_bytes));
 
         return result;
     }
 
-    void deallocate(char* ptr, size_t) {
-        // std::cout << "cached_allocator::deallocate(): ptr == "
-        //           << reinterpret_cast<void*>(ptr) << std::endl;
+    void deallocate(char* ptr, size_t n) {
+        // fmt::print("cached_allocator::deallocate(): ptr == {}\n",
+        //           fmt::ptr(ptr));
 
         // Erase the allocated block from the allocated blocks map.
         allocated_blocks_type::iterator iter = allocated_blocks.find(ptr);
-
         if (iter == allocated_blocks.end()) {
-            throw not_my_pointer(reinterpret_cast<void*>(ptr));
+            std::string msg = fmt::format(
+                "Pointer `{}` was not allocated by this allocator.",
+                fmt::ptr(ptr));
+            throw std::range_error(msg);
         }
 
         std::ptrdiff_t num_bytes = iter->second;
         allocated_blocks.erase(iter);
 
-        // insert the block into the free blocks map
+        // Insert the block into the free blocks map.
         free_blocks.insert(std::make_pair(num_bytes, ptr));
     }
 
 private:
     typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
-    typedef std::map<char*, std::ptrdiff_t>      allocated_blocks_type;
+    typedef std::map<char*, std::ptrdiff_t> allocated_blocks_type;
 
-    free_blocks_type      free_blocks;
+    free_blocks_type free_blocks;
     allocated_blocks_type allocated_blocks;
 
     void free_all() {
-        // std::cout << "cached_allocator::free_all(): cleaning up after
-        // ourselves..." << std::endl;
+        // fmt::print("cached_allocator::free_all()\n");
 
         // Deallocate all outstanding blocks in both lists.
         for (free_blocks_type::iterator i = free_blocks.begin();
-             i != free_blocks.end();
-             ++i) {
+             i != free_blocks.end(); ++i) {
             // Transform the pointer to cuda::pointer before calling cuda::free.
             thrust::cuda::free(thrust::cuda::pointer<char>(i->second));
         }
 
         for (allocated_blocks_type::iterator i = allocated_blocks.begin();
-             i != allocated_blocks.end();
-             ++i) {
+             i != allocated_blocks.end(); ++i) {
             // Transform the pointer to cuda::pointer before calling cuda::free.
             thrust::cuda::free(thrust::cuda::pointer<char>(i->first));
         }
     }
 };
-
-// Global instance of custom allocator
-extern cached_allocator g_allocator;
-
-// Tag for custom memory allocator in Thrust calls
-struct my_tag : thrust::system::cuda::tag {};

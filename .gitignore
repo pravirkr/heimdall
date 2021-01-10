@@ -43,3 +43,6 @@
 lib/
 obj/
 build/
+
+# Editor
+.vscode/
