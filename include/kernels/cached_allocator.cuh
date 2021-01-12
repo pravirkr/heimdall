@@ -25,6 +25,8 @@
 
 // A simple allocator for caching cudaMalloc allocations.
 struct cached_allocator {
+    typedef char value_type;
+
     cached_allocator() {}
 
     ~cached_allocator() { free_all(); }

@@ -25,7 +25,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Install CUDA
       env:
         cuda: ${{ matrix.cuda }}
@@ -40,7 +40,8 @@ jobs:
         CUDA_MINOR=$(echo "${cuda}" | cut -d. -f2)
 
         # Minimal set of packages to install
-        CUDA_MINIMAL=("minimal-build" "command-line-tools" "libraries-dev")
+        # libraries-dev for additional CUDA libraries
+        CUDA_MINIMAL=("minimal-build")
         CUDA_PACKAGES=""
         for package in "${CUDA_MINIMAL[@]}"; do CUDA_PACKAGES+=" cuda-${package}-${CUDA_MAJOR}-${CUDA_MINOR}"; done
         echo "Installing CUDA package ${CUDA_PACKAGES}"
@@ -56,10 +57,10 @@ jobs:
         echo "LIBRARY_PATH=${CUDA_PATH}/lib64${LIBRARY_PATH:+:${LIBRARY_PATH}}" >> $GITHUB_ENV
         echo "LD_LIBRARY_PATH=${CUDA_PATH}/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" >> $GITHUB_ENV
         echo "${CUDA_PATH}/bin" >> $GITHUB_PATH
-      shell: bash    
-    
+      shell: bash
+
     # Specify the correct host compilers
-    - name: Install/Select gcc and g++ 
+    - name: Install/Select gcc and g++
       env:
         gcc: ${{ matrix.gcc }}
       run: |
@@ -69,11 +70,11 @@ jobs:
         echo "CUDAHOSTCXX=/usr/bin/g++-${gcc}" >> $GITHUB_ENV
 
     - name: Install CMake and clang tools
-      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12 
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
       run: |
         sudo apt-get update
         sudo apt-get -y install git build-essential cmake clang-tidy clang-format
-        
+
     - name: Configure CMake
       id: configure
       run: cmake . -B ${{ env.build_dir }} -Werror=dev -DENABLE_CLANG_TIDY=ON

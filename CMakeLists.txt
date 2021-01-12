@@ -8,7 +8,10 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(DEDISP "dedisp")
+
+# CMake 'find package' files are stored in this directory
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 
 include(FindGit)
 include(FetchContent)
@@ -45,7 +48,7 @@ set(CMAKE_CUDA_FLAGS "-c -Xcompiler=-Wall -arch=sm_60 -Wno-deprecated-declaratio
 set(CMAKE_CUDA_FLAGS_DEBUG "-g")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3")
 
-# search for CMake configuration file for fmt
+# Search for CMake configuration file for fmt
 find_package(fmt 7.1.2 QUIET)
 if(fmt_FOUND)
     message(STATUS "Found {fmt}: ${fmt_DIR} (found version '${fmt_VERSION}')")
@@ -56,30 +59,42 @@ else(fmt_FOUND)
         GIT_REPOSITORY https://github.com/fmtlib/fmt.git
         GIT_TAG        7.1.2
     )
-    FetchContent_GetProperties(fmt)
-    if(NOT fmt_POPULATED)
-        FetchContent_Populate(fmt)
-        message(STATUS "{fmt} source dir: ${fmt_SOURCE_DIR}")
-        add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
+    FetchContent_MakeAvailable(fmt)
     message(STATUS "{fmt} include dir: ${fmt_SOURCE_DIR}/include")
 endif(fmt_FOUND)
 
+# Search for dedisp library
+find_package(dedisp)
+if(dedisp_FOUND)
+    message(STATUS "Found dedisp: ${dedisp_ROOT_DIR} (found version '${dedisp_VERSION}')")
+else(dedisp_FOUND)
+    message(STATUS "No local dedisp installation found. Downloading from Git...")
+    SET(BUILD_PYTHON OFF CACHE BOOL "Do not build python bindings for dedisp")
+    FetchContent_Declare(
+        dedisp
+        GIT_REPOSITORY https://github.com/pravirkr/pydedisp.git
+        #GIT_TAG        7.1.2
+    )
+    FetchContent_MakeAvailable(dedisp)
+    #set(dedisp_LIBRARIES ${dedisp_SOURCE_DIR}/lib )
+    set(dedisp_INCLUDE_DIRS ${dedisp_SOURCE_DIR}/include )
+    message(STATUS "dedisp include dir: ${dedisp_INCLUDE_DIRS}")
+endif(dedisp_FOUND)
 
-# dedisp shared library
-add_library(${DEDISP} SHARED ${PROJECT_SOURCE_DIR}/src/dedisp.cu)
-set_target_properties(${DEDISP}
-    PROPERTIES
-        VERSION ${PROJECT_VERSION}
-        SOVERSION ${PROJECT_VERSION_MAJOR}
-)
+# Set variables
+set(heimdall_headers
+    ${PROJECT_SOURCE_DIR}/include)
 
-target_include_directories(${DEDISP} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+set(external_headers
+    ${PROJECT_SOURCE_DIR}/external
+    ${dedisp_INCLUDE_DIRS}
+    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+    ${fmt_SOURCE_DIR}/include)
 
-install(TARGETS ${DEDISP}
-    LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/lib
-)
-
+set(ALL_LIBRARIES
+    dedisp
+    pthread
+    fmt::fmt-header-only)
 
 # heimdall
 add_executable(${PROJECT_NAME}
@@ -97,19 +112,14 @@ add_executable(${PROJECT_NAME}
     ${PROJECT_SOURCE_DIR}/src/remove_baseline.cu
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/external)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${fmt_SOURCE_DIR}/include)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE ${DEDISP} pthread fmt::fmt-header-only)
+target_include_directories(${PROJECT_NAME} PRIVATE ${heimdall_headers} )
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${external_headers} )
+target_link_libraries(${PROJECT_NAME} PRIVATE ${ALL_LIBRARIES} )
+set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_ARCHITECTURES OFF )
 
 install(TARGETS ${PROJECT_NAME}
     DESTINATION ${PROJECT_SOURCE_DIR}/bin
 )
-
-
-add_subdirectory("tests")
 
 
 # ------------------------------------------------------------------------------

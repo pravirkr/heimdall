@@ -12,12 +12,12 @@
 #include <fmt/format.h>
 //#define PRINT_BENCHMARKS
 
+#include <thrust/system/cuda/execution_policy.h>
 #include <thrust/device_vector.h>
 #include <thrust/count.h>
 #include <thrust/copy.h>
 #include <thrust/adjacent_difference.h>
 #include <thrust/scan.h>
-#include <thrust/execution_policy.h>
 #include <thrust/binary_search.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
